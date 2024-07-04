@@ -1,22 +1,22 @@
-image: ghcr.io/OctopusSolutionsEngineering/octolint:latest
+image: ghcr.io/octopussolutionsengineering/octolint:latest
 manifests:
   -
-    image: ghcr.io/OctopusSolutionsEngineering/octolint-linux:latest
+    image: ghcr.io/octopussolutionsengineering/octolint-linux:latest
     platform:
       architecture: amd64
       os: linux
   -
-    image: ghcr.io/OctopusSolutionsEngineering/octolint-linux-arm64:latest
+    image: ghcr.io/octopussolutionsengineering/octolint-linux-arm64:latest
     platform:
       architecture: arm64
       os: linux
   -
-    image: ghcr.io/OctopusSolutionsEngineering/octolint-windows-2019:latest
+    image: ghcr.io/octopussolutionsengineering/octolint-windows-2019:latest
     platform:
       architecture: amd64
       os: windows
   -
-    image: ghcr.io/OctopusSolutionsEngineering/octolint-windows-2022:latest
+    image: ghcr.io/octopussolutionsengineering/octolint-windows-2022:latest
     platform:
       architecture: amd64
       os: windows
