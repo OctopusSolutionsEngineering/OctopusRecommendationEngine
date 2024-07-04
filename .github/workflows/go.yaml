@@ -275,6 +275,40 @@ jobs:
           platforms: arm64
           tags: octopussamples/octolint-linux-arm64:${{ steps.determine_version.outputs.semVer }}
           build-args: Version=${{ steps.determine_version.outputs.semVer }}
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: https://ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push latest
+        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/octolint-linux:latest
+          build-args: Version=${{ steps.determine_version.outputs.semVer }}
+      - name: Build and push versioned image
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/octolint-linux:${{ steps.determine_version.outputs.semVer }}
+          build-args: Version=${{ steps.determine_version.outputs.semVer }}
+      - name: Build and push latest arm64
+        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          platforms: arm64
+          tags: ghcr.io/${{ github.repository_owner }}/octolint-linux-arm64:latest
+          build-args: Version=${{ steps.determine_version.outputs.semVer }}
+      - name: Build and push versioned image arm64
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          platforms: arm64
+          tags: ghcr.io/${{ github.repository_owner }}/octolint-linux-arm64:${{ steps.determine_version.outputs.semVer }}
+          build-args: Version=${{ steps.determine_version.outputs.semVer }}
   build-windows:
     runs-on: windows-latest
     steps:
@@ -326,18 +360,63 @@ jobs:
         run: |
           docker build --platform windows/amd64 . -f Dockerfile.windows2022 -t octopussamples/octolint-windows-2022:${{ steps.determine_version.outputs.semVer }}
           docker push octopussamples/octolint-windows-2022:${{ steps.determine_version.outputs.semVer }}
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: https://ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push latest
+        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+        run: |
+          docker build --platform windows/amd64 . -f Dockerfile.windows2019 -t octopussamples/octolint-windows-2019:latest
+          docker push ghcr.io/${{ github.repository_owner }}/octolint-windows-2019:latest
+      - name: Build and push
+        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+        run: |
+          docker build --platform windows/amd64 . -f Dockerfile.windows2019 -t octopussamples/octolint-windows-2019:${{ steps.determine_version.outputs.semVer }}
+          docker push ghcr.io/${{ github.repository_owner }}/octolint-windows-2019:${{ steps.determine_version.outputs.semVer }}
+
+      - name: Build and push latest 2022
+        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+        run: |
+          docker build --platform windows/amd64 . -f Dockerfile.windows2022 -t octopussamples/octolint-windows-2022:latest
+          docker push ghcr.io/${{ github.repository_owner }}/octolint-windows-2022:latest
+      - name: Build and push
+        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+        run: |
+          docker build --platform windows/amd64 . -f Dockerfile.windows2022 -t octopussamples/octolint-windows-2022:${{ steps.determine_version.outputs.semVer }}
+          docker push ghcr.io/${{ github.repository_owner }}/octolint-windows-2022:${{ steps.determine_version.outputs.semVer }}
   multiarch-image:
     needs: [ build-windows, build ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Create manifest
         run: >
           docker run -v $PWD:/build mplatform/manifest-tool 
           --username=${{ secrets.DOCKERHUB_USERNAME }} 
           --password=${{ secrets.DOCKERHUB_TOKEN }} 
           push from-spec /build/manifest-octolint.yaml
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: https://ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create manifest GHCR
+        run: >
+          docker run -v $PWD:/build mplatform/manifest-tool 
+          --username=${{ secrets.DOCKERHUB_USERNAME }} 
+          --password=${{ secrets.DOCKERHUB_TOKEN }} 
+          push from-spec /build/manifest-octolint-ghcr.yaml
 permissions:
   id-token: write
   checks: write
   contents: write
+  packages: write
