@@ -391,6 +391,7 @@ jobs:
     needs: [ build-windows, build ]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - name: Create manifest
         run: >
           docker run -v $PWD:/build mplatform/manifest-tool 
