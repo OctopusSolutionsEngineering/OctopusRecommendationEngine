@@ -7,6 +7,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const ParallelTasks = 15
+
 // OctopusCheckExecutor is responsible for running each lint check and returning the results. It deals with things
 // like retries and error handling.
 type OctopusCheckExecutor struct {
@@ -25,7 +27,7 @@ func (o OctopusCheckExecutor) ExecuteChecks(checkCollection []checks.OctopusChec
 	checkResults := []checks.OctopusCheckResult{}
 
 	g, _ := errgroup.WithContext(context.Background())
-	g.SetLimit(10)
+	g.SetLimit(ParallelTasks)
 
 	for _, c := range checkCollection {
 		c := c

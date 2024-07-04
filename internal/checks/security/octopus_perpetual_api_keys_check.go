@@ -72,7 +72,7 @@ func (o OctopusPerpetualApiKeysCheck) Execute() (checks.OctopusCheckResult, erro
 		}
 
 		for _, k := range keys.Items {
-			if k.Expires == nil && k.APIKey.Hint != nil {
+			if k.Expires == nil && k.APIKey.Hint != nil && u.Username != "guest" {
 				perpetualApiKeys = append(perpetualApiKeys, *k.APIKey.Hint+"... ("+u.Username+")")
 			}
 		}

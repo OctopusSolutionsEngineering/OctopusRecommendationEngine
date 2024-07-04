@@ -6,6 +6,7 @@ import (
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/events"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"go.uber.org/zap"
 	"strings"
@@ -13,6 +14,7 @@ import (
 )
 
 const maxHealthCheckTime = time.Hour * 24 * 30
+const OctoLintUnhealthyTargets = "OctoLintUnhealthyTargets"
 
 // OctopusUnhealthyTargetCheck find targets that have not been healthy in the last 30 days.
 type OctopusUnhealthyTargetCheck struct {
@@ -26,7 +28,7 @@ func NewOctopusUnhealthyTargetCheck(client *client.Client, config *config.Octoli
 }
 
 func (o OctopusUnhealthyTargetCheck) Id() string {
-	return "OctoLintUnhealthyTargets"
+	return OctoLintUnhealthyTargets
 }
 
 func (o OctopusUnhealthyTargetCheck) Execute() (checks.OctopusCheckResult, error) {
@@ -40,7 +42,7 @@ func (o OctopusUnhealthyTargetCheck) Execute() (checks.OctopusCheckResult, error
 		zap.L().Debug("Ended check " + o.Id())
 	}()
 
-	allMachines, err := o.client.Machines.GetAll()
+	allMachines, err := client_wrapper.GetMachines(o.config.MaxUnhealthyTargets, o.client, o.client.GetSpaceID())
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)

@@ -54,7 +54,7 @@ func (o OctopusProjectSpecificEnvironmentCheck) Execute() (checks.OctopusCheckRe
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
 	}
 
-	allEnvironments, err := o.client.Environments.GetAll()
+	allEnvironments, err := client_wrapper.GetEnvironments(o.config.MaxProjectSpecificEnvironmentEnvironments, o.client, o.client.GetSpaceID())
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)

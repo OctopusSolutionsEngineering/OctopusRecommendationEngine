@@ -7,11 +7,14 @@ import (
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/core"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/tenants"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 	"strings"
 )
+
+const OctoLintDirectTenantReferences = "OctoLintDirectTenantReferences"
 
 // OctopusTenantsInsteadOfTagsCheck checks to see if any common groups of tenants are found against common resources like accounts, targets etc
 type OctopusTenantsInsteadOfTagsCheck struct {
@@ -25,7 +28,7 @@ func NewOctopusTenantsInsteadOfTagsCheck(client *client.Client, config *config.O
 }
 
 func (o OctopusTenantsInsteadOfTagsCheck) Id() string {
-	return "OctoLintDirectTenantReferences"
+	return OctoLintDirectTenantReferences
 }
 
 func (o OctopusTenantsInsteadOfTagsCheck) Execute() (checks.OctopusCheckResult, error) {
@@ -39,7 +42,7 @@ func (o OctopusTenantsInsteadOfTagsCheck) Execute() (checks.OctopusCheckResult, 
 		zap.L().Debug("Ended check " + o.Id())
 	}()
 
-	allTenants, err := o.client.Tenants.GetAll()
+	allTenants, err := client_wrapper.GetTenants(o.config.MaxTenantTagsTenants, o.client, o.client.GetSpaceID())
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
@@ -57,7 +60,7 @@ func (o OctopusTenantsInsteadOfTagsCheck) Execute() (checks.OctopusCheckResult, 
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
 	}
 
-	allMachines, err := o.client.Machines.GetAll()
+	allMachines, err := client_wrapper.GetMachines(o.config.MaxTenantTagsTargets, o.client, o.client.GetSpaceID())
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)

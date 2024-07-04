@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"go.uber.org/zap"
 	"regexp"
@@ -58,7 +59,7 @@ func (o OctopusInvalidTargetName) Execute() (checks.OctopusCheckResult, error) {
 			checks.Naming), nil
 	}
 
-	allMachines, err := o.client.Machines.GetAll()
+	allMachines, err := client_wrapper.GetMachines(o.config.MaxInvalidNameTargets, o.client, o.client.GetSpaceID())
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Naming, err)

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"github.com/OctopusSolutionsEngineering/OctopusTerraformTestFramework/octoclient"
 	"github.com/OctopusSolutionsEngineering/OctopusTerraformTestFramework/test"
@@ -30,7 +31,7 @@ func TestUnhealthyTargets(t *testing.T) {
 
 		// loop for a bit until the target is unhealthy
 		for i := 0; i < 12; i++ {
-			machines, err := newSpaceClient.Machines.GetAll()
+			machines, err := client_wrapper.GetMachines(0, newSpaceClient, newSpaceClient.GetSpaceID())
 
 			if err != nil {
 				return err

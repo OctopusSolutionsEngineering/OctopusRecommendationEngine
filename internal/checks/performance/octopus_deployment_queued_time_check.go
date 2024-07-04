@@ -16,6 +16,7 @@ import (
 
 const maxQueueTimeMinutes = 1
 const maxQueuedTasks = 10
+const OctoLintDeploymentQueuedTime = "OctoLintDeploymentQueuedTime"
 
 type deploymentInfo struct {
 	deploymentId string
@@ -46,7 +47,7 @@ func NewOctopusDeploymentQueuedTimeCheck(client *client.Client, config *config.O
 }
 
 func (o OctopusDeploymentQueuedTimeCheck) Id() string {
-	return "OctoLintDeploymentQueuedTime"
+	return OctoLintDeploymentQueuedTime
 }
 
 func (o OctopusDeploymentQueuedTimeCheck) Execute() (checks.OctopusCheckResult, error) {
@@ -63,7 +64,7 @@ func (o OctopusDeploymentQueuedTimeCheck) Execute() (checks.OctopusCheckResult, 
 	resource, err := o.client.Events.Get(events.EventsQuery{
 		EventCategories: []string{"DeploymentQueued", "DeploymentStarted"},
 		Skip:            0,
-		Take:            1000,
+		Take:            o.config.MaxDeploymentTasks,
 	})
 
 	if err != nil {

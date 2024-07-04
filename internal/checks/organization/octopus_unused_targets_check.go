@@ -10,6 +10,7 @@ import (
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/tasks"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/variables"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"go.uber.org/zap"
 	"regexp"
@@ -18,6 +19,7 @@ import (
 )
 
 const maxTimeSinceLastMachineDeployment = time.Hour * 24 * 30
+const OctoLintUnusedTargets = "OctoLintUnusedTargets"
 
 // OctopusUnusedTargetsCheck checks to see if any targets have not been used in a month
 type OctopusUnusedTargetsCheck struct {
@@ -31,7 +33,7 @@ func NewOctopusUnusedTargetsCheck(client *client.Client, config *config.Octolint
 }
 
 func (o OctopusUnusedTargetsCheck) Id() string {
-	return "OctoLintUnusedTargets"
+	return OctoLintUnusedTargets
 }
 
 func (o OctopusUnusedTargetsCheck) Execute() (checks.OctopusCheckResult, error) {
@@ -45,7 +47,7 @@ func (o OctopusUnusedTargetsCheck) Execute() (checks.OctopusCheckResult, error) 
 		zap.L().Debug("Ended check " + o.Id())
 	}()
 
-	targets, err := o.client.Machines.GetAll()
+	targets, err := client_wrapper.GetMachines(o.config.MaxUnusedTargets, o.client, o.client.GetSpaceID())
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
