@@ -28,7 +28,7 @@ the [releases](https://github.com/OctopusSalesEngineering/OctopusRecommendationE
 Octolint is also distributed as a Docker image:
 
 ```
-docker run -t --rm octopussamples/octolint \
+docker run -t --rm ghcr.io/octopussolutionsengineering/octolint \
     -url https://yourinstance.octopus.app \
     -apiKey API-YOURAPIKEY \
     -space Spaces-1
@@ -38,11 +38,11 @@ You can run octolint as part of an Octopus deployment process or runbook:
 
 ```bash
 echo "##octopus[stdout-verbose]"
-docker pull octopussamples/octolint 2>&1
+docker pull ghcr.io/octopussolutionsengineering/octolint 2>&1
 echo "##octopus[stdout-default]"
 
 docker run -t --rm \
-    octopussamples/octolint \
+    ghcr.io/octopussolutionsengineering/octolint \
     -spinner=false \
     -url #{Octopus.Web.ServerUri} \
     -apiKey #{ApiKey} \
@@ -97,11 +97,11 @@ The example below shows how to achieve this in Bash:
 
 ```bash
 echo "##octopus[stdout-verbose]"
-docker pull octopussamples/octolint 2>&1
+docker pull ghcr.io/octopussolutionsengineering/octolint 2>&1
 echo "##octopus[stdout-default]"
 
 RESULTS=$(docker run -t --rm \
-    octopussamples/octolint \
+    ghcr.io/octopussolutionsengineering/octolint \
     -spinner=false \
     -url "#{Octopus.Web.ServerUri}" \
     -apiKey "#{ApiKey}" \
@@ -153,14 +153,14 @@ attempts to resolve `yourinstance.octopus.app`, and you must change this to refl
 you would normally pass to octolint:
 
 ```shell
-docker run --rm --entrypoint "/usr/bin/nslookup" octopussamples/octolint yourinstance.octopus.app
+docker run --rm --entrypoint "/usr/bin/nslookup" ghcr.io/octopussolutionsengineering/octolint yourinstance.octopus.app
 ```
 
 This is an example of the output when the Docker container can not resolve the network address. This either indicates that
 the Docker networking is not allowing the hostname to be resolved, or that the hostname is invalid:
 
 ```shell
-$ docker run --rm --entrypoint "/usr/bin/nslookup" octopussamples/octolint this.address.does.not.exist
+$ docker run --rm --entrypoint "/usr/bin/nslookup" ghcr.io/octopussolutionsengineering/octolint this.address.does.not.exist
 Server:		1.1.1.1
 Address:	1.1.1.1:53
 
@@ -172,7 +172,7 @@ Address:	1.1.1.1:53
 This is an example were the hostname can be successfully resolved:
 
 ```shell
-$ docker run --rm --entrypoint "/usr/bin/nslookup" octopussamples/octolint mattc.octopus.app
+$ docker run --rm --entrypoint "/usr/bin/nslookup" ghcr.io/octopussolutionsengineering/octolint mattc.octopus.app
 Server:		1.1.1.1
 Address:	1.1.1.1:53
 
