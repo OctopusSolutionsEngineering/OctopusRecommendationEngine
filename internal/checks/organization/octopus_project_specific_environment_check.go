@@ -134,7 +134,11 @@ func (o OctopusProjectSpecificEnvironmentCheck) Execute() (checks.OctopusCheckRe
 	if len(singleProjectEnvironments) > 0 {
 		messages := []string{}
 		for env, envProject := range singleProjectEnvironments {
-			messages = append(messages, o.getEnvironmentById(allEnvironments, env).Name+" ("+envProject+")")
+			environment := o.getEnvironmentById(allEnvironments, env)
+			if environment == nil {
+				continue
+			}
+			messages = append(messages, environment.Name+" ("+envProject+")")
 		}
 
 		return checks.NewOctopusCheckResultImpl(
