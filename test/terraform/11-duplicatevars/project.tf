@@ -61,15 +61,6 @@ resource "octopusdeploy_variable" "variablea" {
   type         = "String"
   description  = ""
   is_sensitive = false
-
-  scope {
-    actions      = []
-    channels     = []
-    environments = []
-    machines     = []
-    roles        = null
-    tenant_tags  = null
-  }
   depends_on = []
 }
 
@@ -80,15 +71,6 @@ resource "octopusdeploy_variable" "variableb" {
   type         = "String"
   description  = ""
   is_sensitive = false
-
-  scope {
-    actions      = []
-    channels     = []
-    environments = []
-    machines     = []
-    roles        = null
-    tenant_tags  = null
-  }
   depends_on = []
 }
 
@@ -176,15 +158,6 @@ resource "octopusdeploy_variable" "variabled" {
   type         = "String"
   description  = ""
   is_sensitive = false
-
-  scope {
-    actions      = []
-    channels     = []
-    environments = []
-    machines     = []
-    roles        = null
-    tenant_tags  = null
-  }
   depends_on = []
 }
 
@@ -195,15 +168,6 @@ resource "octopusdeploy_variable" "variablec" {
   type         = "String"
   description  = ""
   is_sensitive = false
-
-  scope {
-    actions      = []
-    channels     = []
-    environments = []
-    machines     = []
-    roles        = null
-    tenant_tags  = null
-  }
   depends_on = []
 }
 
