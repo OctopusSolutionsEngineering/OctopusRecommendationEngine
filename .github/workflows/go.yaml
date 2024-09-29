@@ -188,17 +188,17 @@ jobs:
 #        with:
 #          name: Dependencies Updates
 #          path: dependencyUpdates.txt
-      - run: go build -ldflags="-X 'main.Version=${{ steps.determine_version.outputs.semVer }}'" -o octolint_linux_amd64 cmd/octolint.go
+      - run: go build -ldflags="-X 'entry.Version=${{ steps.determine_version.outputs.semVer }}'" -o octolint_linux_amd64 cmd/cli/octolint.go
         env:
           GOOS: linux
           GOARCH: amd64
           CGO_ENABLED: 0
-      - run: go build -ldflags="-X 'main.Version=${{ steps.determine_version.outputs.semVer }}'" -o octolint_windows_amd64.exe cmd/octolint.go
+      - run: go build -ldflags="-X 'entry.Version=${{ steps.determine_version.outputs.semVer }}'" -o octolint_windows_amd64.exe cmd/cli/octolint.go
         env:
           GOOS: windows
           GOARCH: amd64
           CGO_ENABLED: 0
-      - run: go build -ldflags="-X 'main.Version=${{ steps.determine_version.outputs.semVer }}'" -o octolint_macos_arm64 cmd/octolint.go
+      - run: go build -ldflags="-X 'entry.Version=${{ steps.determine_version.outputs.semVer }}'" -o octolint_macos_arm64 cmd/cli/octolint.go
         env:
           GOOS: darwin
           GOARCH: arm64
