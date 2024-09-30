@@ -7,7 +7,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
       - name: Install Terraform
@@ -15,7 +15,7 @@ jobs:
         with:
           terraform_wrapper: false
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/checkout@v5
       - name: Install Dependencies
         run: go get ./...
         shell: bash

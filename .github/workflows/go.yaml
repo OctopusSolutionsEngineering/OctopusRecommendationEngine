@@ -17,10 +17,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/checkout@v5
 
       - name: Download JUnit Summary from Previous Workflow
         id: download-artifact
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - uses: actions/setup-node@v3
         with:
@@ -140,7 +140,7 @@ jobs:
     needs: [ tests-combine-summaries ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
       - name: Get branch name
@@ -155,7 +155,7 @@ jobs:
         with:
           terraform_wrapper: false
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/checkout@v5
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v0.9.15
         with:
@@ -355,8 +355,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Set up Go
-        uses: actions/setup-go@v3
-      - uses: actions/checkout@v3
+        uses: actions/checkout@v5
+      - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
       - name: Get branch name
@@ -433,7 +433,7 @@ jobs:
     needs: [ build-windows, build ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Create manifest
         run: >
           docker run -v $PWD:/build mplatform/manifest-tool 
