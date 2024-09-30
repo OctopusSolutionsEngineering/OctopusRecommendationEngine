@@ -22,7 +22,8 @@ terraform.*
 crash.log
 tflog.txt
 
-./octolint
+octolint
+octolint-azure
 
 results.xml
 
