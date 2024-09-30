@@ -268,18 +268,18 @@ jobs:
         with:
           packages: functions/octolint_azure.${{ steps.determine_version.outputs.semVer }}.zip
           overwrite_mode: OverwriteExisting
-#      - name: Create Octopus Release
-#        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
-#        uses: OctopusDeploy/create-release-action@v3
-#        env:
-#          OCTOPUS_API_KEY: ${{ secrets.COPILOT_OCTOPUS_API }}
-#          OCTOPUS_URL: ${{ secrets.COPILOT_OCTOPUS_URL }}
-#          OCTOPUS_SPACE: ${{ secrets.COPILOT_OCTOPUS_SPACE }}
-#        with:
-#          project: Octopus Octolint Function
-#          packages: octolint_azure:${{ steps.determine_version.outputs.semVer }}
-#          release_number: ${{ steps.determine_version.outputs.semVer }}+${{ steps.determine_version.outputs.ShortSha }}.${{ github.run_number }}.${{ github.run_attempt }}
-#          git_ref: main
+      - name: Create Octopus Release
+        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+        uses: OctopusDeploy/create-release-action@v3
+        env:
+          OCTOPUS_API_KEY: ${{ secrets.COPILOT_OCTOPUS_API }}
+          OCTOPUS_URL: ${{ secrets.COPILOT_OCTOPUS_URL }}
+          OCTOPUS_SPACE: ${{ secrets.COPILOT_OCTOPUS_SPACE }}
+        with:
+          project: Octopus Octolint Function
+          packages: octolint_azure:${{ steps.determine_version.outputs.semVer }}
+          release_number: ${{ steps.determine_version.outputs.semVer }}+${{ steps.determine_version.outputs.ShortSha }}.${{ github.run_number }}.${{ github.run_attempt }}
+          git_ref: main
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
