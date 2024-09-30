@@ -15,7 +15,7 @@ jobs:
         with:
           terraform_wrapper: false
       - name: Set up Go
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
       - name: Install Dependencies
         run: go get ./...
         shell: bash
