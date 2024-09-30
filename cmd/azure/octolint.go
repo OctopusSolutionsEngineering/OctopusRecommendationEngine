@@ -69,7 +69,7 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := filename[0 : len(filename)-len(extension)]
 
-	commandLineArgs := []string{"-configFile", filenameWithoutExtension, "-configPath", filepath.Dir(file.Name())}
+	commandLineArgs := []string{"-spinner=False", "-configFile", filenameWithoutExtension, "-configPath", filepath.Dir(file.Name())}
 
 	if apiKey != "" {
 		commandLineArgs = append(commandLineArgs, "-apiKey", apiKey)
