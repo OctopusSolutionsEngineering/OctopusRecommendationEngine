@@ -93,7 +93,7 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reporter := reporters.NewOctopusPlainCheckReporter(checks.Warning)
+	reporter := reporters.NewOctopusWebCheckReporter(checks.Warning)
 	report, err := reporter.Generate(results)
 
 	if err != nil {
