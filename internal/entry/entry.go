@@ -23,7 +23,7 @@ import (
 
 var Version = "development"
 
-func Entry(octolintConfig *config.OctolintConfig) []checks.OctopusCheckResult {
+func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, error) {
 	zap.ReplaceGlobals(createLogger(octolintConfig.Verbose))
 
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
@@ -44,22 +44,22 @@ func Entry(octolintConfig *config.OctolintConfig) []checks.OctopusCheckResult {
 	}
 
 	if octolintConfig.Url == "" {
-		ErrorExit("You must specify the URL with the -url argument")
+		return nil, errors.New("You must specify the URL with the -url argument")
 	}
 
 	if octolintConfig.ApiKey == "" {
-		ErrorExit("You must specify the API key with the -apiKey argument")
+		return nil, errors.New("You must specify the API key with the -apiKey argument")
 	}
 
 	if octolintConfig.Space == "" {
-		ErrorExit("You must specify the space key with the -space argument")
+		return nil, errors.New("You must specify the space key with the -space argument")
 	}
 
 	if !strings.HasPrefix(octolintConfig.Space, "Spaces-") {
 		spaceId, err := lookupSpaceAsName(octolintConfig.Url, octolintConfig.Space, octolintConfig.ApiKey)
 
 		if err != nil {
-			ErrorExit("Failed to create the Octopus client_wrapper. Check that the url, api key, and space are correct.\nThe error was: " + err.Error())
+			return nil, errors.New("Failed to create the Octopus client_wrapper. Check that the url, api key, and space are correct.\nThe error was: " + err.Error())
 		}
 
 		octolintConfig.Space = spaceId
@@ -68,7 +68,7 @@ func Entry(octolintConfig *config.OctolintConfig) []checks.OctopusCheckResult {
 	client, err := octoclient.CreateClient(octolintConfig.Url, octolintConfig.Space, octolintConfig.ApiKey)
 
 	if err != nil {
-		ErrorExit("Failed to create the Octopus client_wrapper. Check that the url, api key, and space are correct.\nThe error was: " + err.Error())
+		return nil, errors.New("Failed to create the Octopus client_wrapper. Check that the url, api key, and space are correct.\nThe error was: " + err.Error())
 	}
 
 	factory := factory.NewOctopusCheckFactory(client, octolintConfig.Url, octolintConfig.Space)
@@ -99,10 +99,10 @@ func Entry(octolintConfig *config.OctolintConfig) []checks.OctopusCheckResult {
 	})
 
 	if err != nil {
-		ErrorExit("Failed to run the checks")
+		return nil, errors.New("Failed to run the checks")
 	}
 
-	return results
+	return results, nil
 }
 
 func ErrorExit(message string) {

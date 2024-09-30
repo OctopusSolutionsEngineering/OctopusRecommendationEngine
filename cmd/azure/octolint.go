@@ -86,13 +86,19 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := entry.Entry(webArgs)
+	results, err := entry.Entry(webArgs)
+
+	if err != nil {
+		handleError(err, w)
+		return
+	}
 
 	reporter := reporters.NewOctopusPlainCheckReporter(checks.Warning)
 	report, err := reporter.Generate(results)
 
 	if err != nil {
-		entry.ErrorExit("Failed to generate the report")
+		handleError(err, w)
+		return
 	}
 
 	w.Header()["Content-Type"] = []string{"text/plain; charset=utf-8"}

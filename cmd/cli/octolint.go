@@ -17,7 +17,11 @@ func main() {
 		return
 	}
 
-	results := entry.Entry(octolintConfig)
+	results, err := entry.Entry(octolintConfig)
+
+	if err != nil {
+		entry.ErrorExit(err.Error())
+	}
 
 	reporter := reporters.NewOctopusPlainCheckReporter(checks.Warning)
 	report, err := reporter.Generate(results)
