@@ -203,6 +203,17 @@ jobs:
           GOOS: darwin
           GOARCH: arm64
           CGO_ENABLED: 0
+      - run: go build -ldflags="-X 'main.Version=${{ steps.determine_version.outputs.semVer }}'" -o functions/octolint_linux_amd64_azure cmd/azure/octolint.go
+        env:
+          GOOS: linux
+          GOARCH: amd64
+          CGO_ENABLED: 0
+      # Note you must exclude the local.settings.json file from the zip. Otherwise, you get errors like:
+      # Microsoft.Azure.WebJobs.Script: WorkerConfig for runtime: custom not found.
+      - run: |
+          zip -r octolint_linux_amd64_azure.zip . -x local.settings.json
+          cp octolint_linux_amd64_azure.zip octolint_azure.${{ steps.determine_version.outputs.semVer }}.zip
+        working-directory: functions
       - id: create_release
         uses: "marvinpinto/action-automatic-releases@latest"
         with:
@@ -238,6 +249,37 @@ jobs:
           asset_path: octolint_macos_arm64
           asset_name: octolint_macos_arm64
           asset_content_type: application/octet-stream
+      - name: Upload Azure Functions Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: octolint_linux_amd64_azure.zip
+          asset_name: octolint_linux_amd64_azure.zip
+          asset_content_type: application/octet-stream
+      - name: Push packages to Octopus Deploy
+        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+        uses: OctopusDeploy/push-package-action@v3
+        env:
+          OCTOPUS_API_KEY: ${{ secrets.COPILOT_OCTOPUS_API }}
+          OCTOPUS_URL: ${{ secrets.COPILOT_OCTOPUS_URL }}
+          OCTOPUS_SPACE: ${{ secrets.COPILOT_OCTOPUS_SPACE }}
+        with:
+          packages: functions/octolint_azure.${{ steps.determine_version.outputs.semVer }}.zip
+          overwrite_mode: OverwriteExisting
+#      - name: Create Octopus Release
+#        if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
+#        uses: OctopusDeploy/create-release-action@v3
+#        env:
+#          OCTOPUS_API_KEY: ${{ secrets.COPILOT_OCTOPUS_API }}
+#          OCTOPUS_URL: ${{ secrets.COPILOT_OCTOPUS_URL }}
+#          OCTOPUS_SPACE: ${{ secrets.COPILOT_OCTOPUS_SPACE }}
+#        with:
+#          project: Octopus Octolint Function
+#          packages: octolint_azure:${{ steps.determine_version.outputs.semVer }}
+#          release_number: ${{ steps.determine_version.outputs.semVer }}+${{ steps.determine_version.outputs.ShortSha }}.${{ github.run_number }}.${{ github.run_attempt }}
+#          git_ref: main
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
