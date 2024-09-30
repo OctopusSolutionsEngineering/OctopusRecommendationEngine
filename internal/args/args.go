@@ -1,6 +1,7 @@
 package args
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/naming"
@@ -14,56 +15,64 @@ import (
 	"strings"
 )
 
-func ParseArgs() (*config.OctolintConfig, error) {
+func ParseArgs(args []string) (*config.OctolintConfig, error) {
+	flags := flag.NewFlagSet("octolint", flag.ContinueOnError)
+	var buf bytes.Buffer
+	flags.SetOutput(&buf)
+
 	config := config.OctolintConfig{}
 
-	flag.StringVar(&config.Url, "url", "", "The Octopus URL e.g. https://myinstance.octopus.app")
-	flag.StringVar(&config.Space, "space", "", "The Octopus space name or ID")
-	flag.StringVar(&config.ApiKey, "apiKey", "", "The Octopus api key")
-	flag.StringVar(&config.SkipTests, "skipTests", "", "A comma separated list of tests to skip")
-	flag.StringVar(&config.OnlyTests, "onlyTests", "", "A comma separated list of tests to include")
-	flag.StringVar(&config.ConfigFile, "configFile", "octolint", "The name of the configuration file to use. Do not include the extension. Defaults to octolint")
-	flag.StringVar(&config.ConfigPath, "configPath", ".", "The path of the configuration file to use. Defaults to the current directory")
-	flag.BoolVar(&config.Verbose, "verbose", false, "Print verbose logs")
-	flag.BoolVar(&config.VerboseErrors, "verboseErrors", false, "Print error details as verbose logs in Octopus")
-	flag.BoolVar(&config.Version, "version", false, "Print the version")
-	flag.BoolVar(&config.Spinner, "spinner", true, "Display the spinner")
-	flag.IntVar(&config.MaxEnvironments, "maxEnvironments", defaults.MaxEnvironments, "Maximum number of environments for the "+organization.OctopusEnvironmentCountCheckName+" check")
-	flag.IntVar(&config.MaxDaysSinceLastTask, "maxDaysSinceLastTask", defaults.MaxTimeSinceLastTask, "Maximum number of days since the last project task for the "+organization.OctopusUnusedProjectsCheckName+" check")
-	flag.IntVar(&config.MaxDuplicateVariables, "maxDuplicateVariables", defaults.MaxDuplicateVariables, "Maximum number of duplicate variables to report on for the "+organization.OctoLintDuplicatedVariables+" check. Set to 0 to report all duplicate variables.")
-	flag.IntVar(&config.MaxDuplicateVariableProjects, "maxDuplicateVariableProjects", defaults.MaxDuplicateVariableProjects, "Maximum number of projects to check for duplicate variables for the "+organization.OctoLintDuplicatedVariables+" check. Set to 0 to check all projects.")
-	flag.IntVar(&config.MaxDeploymentsByAdminProjects, "maxDeploymentsByAdminProjects", defaults.MaxDeploymentsByAdminProjects, "Maximum number of projects to check for admin deployments for the "+security.OctoLintDeploymentQueuedByAdmin+" check. Set to 0 to check all projects.")
-	flag.IntVar(&config.MaxInvalidVariableProjects, "maxInvalidVariableProjects", defaults.MaxInvalidVariableProjects, "Maximum number of projects to check for invalid variables for the "+naming.OctoLintInvalidVariableNames+" check. Set to 0 to check all projects.")
-	flag.IntVar(&config.MaxInvalidWorkerPoolProjects, "maxInvalidWorkerPoolProjects", defaults.MaxInvalidWorkerPoolProjects, "Maximum number of projects to check for invalid worker pools for the  "+naming.OctoLintProjectWorkerPool+" check. Set to 0 to check all projects.")
-	flag.IntVar(&config.MaxInvalidContainerImageProjects, "maxInvalidContainerImageProjects", defaults.MaxInvalidContainerImageProjects, "Maximum number of projects to check for invalid container images for the "+naming.OctoLintContainerImageName+" check. Set to 0 to check all projects.")
-	flag.IntVar(&config.MaxDefaultStepNameProjects, "maxDefaultStepNameProjects", defaults.MaxDefaultStepNameProjects, "Maximum number of projects to check for default step names for the "+naming.OctoLintProjectDefaultStepNames+" check. Set to 0 to report all projects")
-	flag.IntVar(&config.MaxInvalidReleaseTemplateProjects, "maxInvalidReleaseTemplateProjects", defaults.MaxInvalidReleaseTemplateProjects, "Maximum number of projects to check for invalid release templates for the "+naming.OctoLintProjectReleaseTemplate+" check. Set to 0 to report all projects.")
-	flag.IntVar(&config.MaxProjectSpecificEnvironmentProjects, "maxProjectSpecificEnvironmentProjects", defaults.MaxProjectSpecificEnvironmentProjects, "Maximum number of projects to check for project specific environments for the "+organization.OctoLintProjectSpecificEnvs+" check. Set to 0 to check all projects.")
-	flag.IntVar(&config.MaxProjectSpecificEnvironmentEnvironments, "maxProjectSpecificEnvironmentEnvironments", defaults.MaxProjectSpecificEnvironmentEnvironments, "Maximum number of environments to check for project specific environments for the "+organization.OctoLintProjectSpecificEnvs+" check. Set to 0 to check all projects.")
-	flag.IntVar(&config.MaxUnusedVariablesProjects, "maxUnusedVariablesProjects", defaults.MaxUnusedVariablesProjects, "Maximum number of projects to check for project specific environments for the "+organization.OctoLintUnusedVariables+" check. Set to 0 to report all projects for specific environments.")
-	flag.IntVar(&config.MaxProjectStepsProjects, "maxProjectStepsProjects", defaults.MaxProjectStepsProjects, "Maximum number of projects to check for project step counts for the "+organization.OctoLintTooManySteps+" check. Set to 0 to report all projects for their step counts.")
-	flag.IntVar(&config.MaxExclusiveEnvironmentsProjects, "maxExclusiveEnvironmentsProjects", defaults.MaxExclusiveEnvironmentsProjects, "Maximum number of projects to check for exclusive environments for the "+organization.OctoLintProjectGroupsWithExclusiveEnvironments+" check. Set to 0 to report all projects with exclusive environments.")
-	flag.IntVar(&config.MaxEmptyProjectCheckProjects, "maxEmptyProjectCheckProjects", defaults.MaxEmptyProjectCheckProjects, "Maximum number of projects to check for no steps for the "+organization.OctoLintEmptyProject+" check. Set to 0 to report all empty projects.")
-	flag.IntVar(&config.MaxUnusedProjects, "maxUnusedProjects", defaults.MaxUnusedProjects, "Maximum number of unused projects to check for the "+organization.OctopusUnusedProjectsCheckName+" check. Set to 0 to report all unused projects.")
-	flag.IntVar(&config.MaxUnusedTargets, "maxUnusedTargets", defaults.MaxUnusedTargets, "Maximum number of unused targets to check for the "+organization.OctoLintUnusedTargets+" check. Set to 0 to report all unused targets.")
-	flag.IntVar(&config.MaxUnhealthyTargets, "maxUnhealthyTargets", defaults.MaxUnhealthyTargets, "Maximum number of unhealthy targets to check for the "+organization.OctoLintUnhealthyTargets+" check. Set to 0 to report all unhealthy targets.")
-	flag.IntVar(&config.MaxInvalidRoleTargets, "maxInvalidRoleTargets", defaults.MaxInvalidRoleTargets, "Maximum number of targets to check for invalid roles for the "+naming.OctoLintInvalidTargetRoles+" check. Set to 0 to report all targets.")
-	flag.IntVar(&config.MaxTenantTagsTargets, "maxTenantTagsTargets", defaults.MaxTenantTagsTargets, "Maximum number of targets to check for potential tenant tags for the "+organization.OctoLintDirectTenantReferences+" check. Set to 0 to check all targets.")
-	flag.IntVar(&config.MaxTenantTagsTenants, "maxTenantTagsTenants", defaults.MaxTenantTagsTenants, "Maximum number of tenants to check for potential tenant tags for the "+organization.OctoLintDirectTenantReferences+" check. Set to 0 to check all targets.")
-	flag.IntVar(&config.MaxInvalidNameTargets, "maxInvalidNameTargets", defaults.MaxInvalidNameTargets, "Maximum number of targets to check for invalid names for the "+naming.OctoLintInvalidTargetNames+" check. Set to 0 to check all targets.")
-	flag.IntVar(&config.MaxInsecureK8sTargets, "maxInsecureK8sTargets", defaults.MaxInsecureK8sTargets, "Maximum number of targets to check for insecure k8s configuration for the "+security.OctoLintInsecureK8sTargets+" check. Set to 0 to check all targets.")
-	flag.IntVar(&config.MaxDeploymentTasks, "maxDeploymentTasks", defaults.MaxDeploymentTasks, "Maximum number of deployment tasks to scan for the "+performance.OctoLintDeploymentQueuedTime+" check. Set to 0 to check all targets.")
-	flag.StringVar(&config.ContainerImageRegex, "containerImageRegex", "", "The regular expression used to validate container images for the "+naming.OctoLintContainerImageName+" check")
-	flag.StringVar(&config.VariableNameRegex, "variableNameRegex", "", "The regular expression used to validate variable names for the "+naming.OctoLintInvalidVariableNames+" check")
-	flag.StringVar(&config.TargetNameRegex, "targetNameRegex", "", "The regular expression used to validate target names for the "+naming.OctoLintInvalidTargetNames+" check")
-	flag.StringVar(&config.TargetRoleRegex, "targetRoleRegex", "", "The regular expression used to validate target roles for the "+naming.OctoLintInvalidTargetRoles+" check")
-	flag.StringVar(&config.ProjectReleaseTemplateRegex, "projectReleaseTemplateRegex", "", "The regular expression used to validate project release templates for the "+naming.OctoLintProjectReleaseTemplate+" check")
-	flag.StringVar(&config.ProjectStepWorkerPoolRegex, "projectStepWorkerPoolRegex", "", "The regular expression used to validate step worker pools for the  "+naming.OctoLintProjectReleaseTemplate+" check")
-	flag.StringVar(&config.LifecycleNameRegex, "lifecycleNameRegex", "", "The regular expression used to validate lifecycle names for the  "+naming.OctoLintInvalidLifecycleNames+" check")
+	flags.StringVar(&config.Url, "url", "", "The Octopus URL e.g. https://myinstance.octopus.app")
+	flags.StringVar(&config.Space, "space", "", "The Octopus space name or ID")
+	flags.StringVar(&config.ApiKey, "apiKey", "", "The Octopus api key")
+	flags.StringVar(&config.SkipTests, "skipTests", "", "A comma separated list of tests to skip")
+	flags.StringVar(&config.OnlyTests, "onlyTests", "", "A comma separated list of tests to include")
+	flags.StringVar(&config.ConfigFile, "configFile", "octolint", "The name of the configuration file to use. Do not include the extension. Defaults to octolint")
+	flags.StringVar(&config.ConfigPath, "configPath", ".", "The path of the configuration file to use. Defaults to the current directory")
+	flags.BoolVar(&config.Verbose, "verbose", false, "Print verbose logs")
+	flags.BoolVar(&config.VerboseErrors, "verboseErrors", false, "Print error details as verbose logs in Octopus")
+	flags.BoolVar(&config.Version, "version", false, "Print the version")
+	flags.BoolVar(&config.Spinner, "spinner", true, "Display the spinner")
+	flags.IntVar(&config.MaxEnvironments, "maxEnvironments", defaults.MaxEnvironments, "Maximum number of environments for the "+organization.OctopusEnvironmentCountCheckName+" check")
+	flags.IntVar(&config.MaxDaysSinceLastTask, "maxDaysSinceLastTask", defaults.MaxTimeSinceLastTask, "Maximum number of days since the last project task for the "+organization.OctopusUnusedProjectsCheckName+" check")
+	flags.IntVar(&config.MaxDuplicateVariables, "maxDuplicateVariables", defaults.MaxDuplicateVariables, "Maximum number of duplicate variables to report on for the "+organization.OctoLintDuplicatedVariables+" check. Set to 0 to report all duplicate variables.")
+	flags.IntVar(&config.MaxDuplicateVariableProjects, "maxDuplicateVariableProjects", defaults.MaxDuplicateVariableProjects, "Maximum number of projects to check for duplicate variables for the "+organization.OctoLintDuplicatedVariables+" check. Set to 0 to check all projects.")
+	flags.IntVar(&config.MaxDeploymentsByAdminProjects, "maxDeploymentsByAdminProjects", defaults.MaxDeploymentsByAdminProjects, "Maximum number of projects to check for admin deployments for the "+security.OctoLintDeploymentQueuedByAdmin+" check. Set to 0 to check all projects.")
+	flags.IntVar(&config.MaxInvalidVariableProjects, "maxInvalidVariableProjects", defaults.MaxInvalidVariableProjects, "Maximum number of projects to check for invalid variables for the "+naming.OctoLintInvalidVariableNames+" check. Set to 0 to check all projects.")
+	flags.IntVar(&config.MaxInvalidWorkerPoolProjects, "maxInvalidWorkerPoolProjects", defaults.MaxInvalidWorkerPoolProjects, "Maximum number of projects to check for invalid worker pools for the  "+naming.OctoLintProjectWorkerPool+" check. Set to 0 to check all projects.")
+	flags.IntVar(&config.MaxInvalidContainerImageProjects, "maxInvalidContainerImageProjects", defaults.MaxInvalidContainerImageProjects, "Maximum number of projects to check for invalid container images for the "+naming.OctoLintContainerImageName+" check. Set to 0 to check all projects.")
+	flags.IntVar(&config.MaxDefaultStepNameProjects, "maxDefaultStepNameProjects", defaults.MaxDefaultStepNameProjects, "Maximum number of projects to check for default step names for the "+naming.OctoLintProjectDefaultStepNames+" check. Set to 0 to report all projects")
+	flags.IntVar(&config.MaxInvalidReleaseTemplateProjects, "maxInvalidReleaseTemplateProjects", defaults.MaxInvalidReleaseTemplateProjects, "Maximum number of projects to check for invalid release templates for the "+naming.OctoLintProjectReleaseTemplate+" check. Set to 0 to report all projects.")
+	flags.IntVar(&config.MaxProjectSpecificEnvironmentProjects, "maxProjectSpecificEnvironmentProjects", defaults.MaxProjectSpecificEnvironmentProjects, "Maximum number of projects to check for project specific environments for the "+organization.OctoLintProjectSpecificEnvs+" check. Set to 0 to check all projects.")
+	flags.IntVar(&config.MaxProjectSpecificEnvironmentEnvironments, "maxProjectSpecificEnvironmentEnvironments", defaults.MaxProjectSpecificEnvironmentEnvironments, "Maximum number of environments to check for project specific environments for the "+organization.OctoLintProjectSpecificEnvs+" check. Set to 0 to check all projects.")
+	flags.IntVar(&config.MaxUnusedVariablesProjects, "maxUnusedVariablesProjects", defaults.MaxUnusedVariablesProjects, "Maximum number of projects to check for project specific environments for the "+organization.OctoLintUnusedVariables+" check. Set to 0 to report all projects for specific environments.")
+	flags.IntVar(&config.MaxProjectStepsProjects, "maxProjectStepsProjects", defaults.MaxProjectStepsProjects, "Maximum number of projects to check for project step counts for the "+organization.OctoLintTooManySteps+" check. Set to 0 to report all projects for their step counts.")
+	flags.IntVar(&config.MaxExclusiveEnvironmentsProjects, "maxExclusiveEnvironmentsProjects", defaults.MaxExclusiveEnvironmentsProjects, "Maximum number of projects to check for exclusive environments for the "+organization.OctoLintProjectGroupsWithExclusiveEnvironments+" check. Set to 0 to report all projects with exclusive environments.")
+	flags.IntVar(&config.MaxEmptyProjectCheckProjects, "maxEmptyProjectCheckProjects", defaults.MaxEmptyProjectCheckProjects, "Maximum number of projects to check for no steps for the "+organization.OctoLintEmptyProject+" check. Set to 0 to report all empty projects.")
+	flags.IntVar(&config.MaxUnusedProjects, "maxUnusedProjects", defaults.MaxUnusedProjects, "Maximum number of unused projects to check for the "+organization.OctopusUnusedProjectsCheckName+" check. Set to 0 to report all unused projects.")
+	flags.IntVar(&config.MaxUnusedTargets, "maxUnusedTargets", defaults.MaxUnusedTargets, "Maximum number of unused targets to check for the "+organization.OctoLintUnusedTargets+" check. Set to 0 to report all unused targets.")
+	flags.IntVar(&config.MaxUnhealthyTargets, "maxUnhealthyTargets", defaults.MaxUnhealthyTargets, "Maximum number of unhealthy targets to check for the "+organization.OctoLintUnhealthyTargets+" check. Set to 0 to report all unhealthy targets.")
+	flags.IntVar(&config.MaxInvalidRoleTargets, "maxInvalidRoleTargets", defaults.MaxInvalidRoleTargets, "Maximum number of targets to check for invalid roles for the "+naming.OctoLintInvalidTargetRoles+" check. Set to 0 to report all targets.")
+	flags.IntVar(&config.MaxTenantTagsTargets, "maxTenantTagsTargets", defaults.MaxTenantTagsTargets, "Maximum number of targets to check for potential tenant tags for the "+organization.OctoLintDirectTenantReferences+" check. Set to 0 to check all targets.")
+	flags.IntVar(&config.MaxTenantTagsTenants, "maxTenantTagsTenants", defaults.MaxTenantTagsTenants, "Maximum number of tenants to check for potential tenant tags for the "+organization.OctoLintDirectTenantReferences+" check. Set to 0 to check all targets.")
+	flags.IntVar(&config.MaxInvalidNameTargets, "maxInvalidNameTargets", defaults.MaxInvalidNameTargets, "Maximum number of targets to check for invalid names for the "+naming.OctoLintInvalidTargetNames+" check. Set to 0 to check all targets.")
+	flags.IntVar(&config.MaxInsecureK8sTargets, "maxInsecureK8sTargets", defaults.MaxInsecureK8sTargets, "Maximum number of targets to check for insecure k8s configuration for the "+security.OctoLintInsecureK8sTargets+" check. Set to 0 to check all targets.")
+	flags.IntVar(&config.MaxDeploymentTasks, "maxDeploymentTasks", defaults.MaxDeploymentTasks, "Maximum number of deployment tasks to scan for the "+performance.OctoLintDeploymentQueuedTime+" check. Set to 0 to check all targets.")
+	flags.StringVar(&config.ContainerImageRegex, "containerImageRegex", "", "The regular expression used to validate container images for the "+naming.OctoLintContainerImageName+" check")
+	flags.StringVar(&config.VariableNameRegex, "variableNameRegex", "", "The regular expression used to validate variable names for the "+naming.OctoLintInvalidVariableNames+" check")
+	flags.StringVar(&config.TargetNameRegex, "targetNameRegex", "", "The regular expression used to validate target names for the "+naming.OctoLintInvalidTargetNames+" check")
+	flags.StringVar(&config.TargetRoleRegex, "targetRoleRegex", "", "The regular expression used to validate target roles for the "+naming.OctoLintInvalidTargetRoles+" check")
+	flags.StringVar(&config.ProjectReleaseTemplateRegex, "projectReleaseTemplateRegex", "", "The regular expression used to validate project release templates for the "+naming.OctoLintProjectReleaseTemplate+" check")
+	flags.StringVar(&config.ProjectStepWorkerPoolRegex, "projectStepWorkerPoolRegex", "", "The regular expression used to validate step worker pools for the  "+naming.OctoLintProjectReleaseTemplate+" check")
+	flags.StringVar(&config.LifecycleNameRegex, "lifecycleNameRegex", "", "The regular expression used to validate lifecycle names for the  "+naming.OctoLintInvalidLifecycleNames+" check")
 
-	flag.Parse()
+	err := flags.Parse(args)
 
-	err := overrideArgs(config.ConfigPath, config.ConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	err = overrideArgs(config.ConfigPath, config.ConfigFile)
 
 	if err != nil {
 		return nil, err

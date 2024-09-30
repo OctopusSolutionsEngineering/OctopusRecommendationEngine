@@ -10,7 +10,6 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/factory"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/executor"
-	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/reporters"
 	"github.com/OctopusSolutionsEngineering/OctopusTerraformTestFramework/octoclient"
 	"github.com/briandowns/spinner"
 	"go.uber.org/zap"
@@ -24,7 +23,7 @@ import (
 
 var Version = "development"
 
-func Entry(octolintConfig *config.OctolintConfig) {
+func Entry(octolintConfig *config.OctolintConfig) []checks.OctopusCheckResult {
 	zap.ReplaceGlobals(createLogger(octolintConfig.Verbose))
 
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
@@ -103,14 +102,7 @@ func Entry(octolintConfig *config.OctolintConfig) {
 		ErrorExit("Failed to run the checks")
 	}
 
-	reporter := reporters.NewOctopusPlainCheckReporter(checks.Warning)
-	report, err := reporter.Generate(results)
-
-	if err != nil {
-		ErrorExit("Failed to generate the report")
-	}
-
-	fmt.Println(report)
+	return results
 }
 
 func ErrorExit(message string) {

@@ -1,0 +1,139 @@
+package main
+
+import (
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/args"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/entry"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/reporters"
+	"go.uber.org/zap"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+)
+
+type AzureFunctionRequestDataReq struct {
+	Body string `json:"Body"`
+}
+
+type AzureFunctionRequestData struct {
+	Req AzureFunctionRequestDataReq `json:"req"`
+}
+
+type AzureFunctionRequest struct {
+	Data AzureFunctionRequestData `json:"Data"`
+}
+
+func octoterraHandler(w http.ResponseWriter, r *http.Request) {
+	// Allow the more sensitive values to be passed as headers
+	apiKey := r.Header.Get("X-Octopus-ApiKey")
+	url := r.Header.Get("X-Octopus-Url")
+
+	respBytes, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		handleError(err, w)
+		return
+	}
+
+	if len(respBytes) == 0 {
+		w.WriteHeader(400)
+		w.Write([]byte("Request body is empty"))
+		return
+	}
+
+	file, err := os.CreateTemp("", "*.json")
+
+	if err != nil {
+		handleError(err, w)
+		return
+	}
+
+	err = os.WriteFile(file.Name(), []byte(respBytes), 0644)
+
+	if err != nil {
+		handleError(err, w)
+		return
+	}
+
+	// Clean up the file when we are done
+	defer func(name string) {
+		err := os.Remove(name)
+		if err != nil {
+			zap.L().Error(err.Error())
+		}
+	}(file.Name())
+
+	filename := filepath.Base(file.Name())
+	extension := filepath.Ext(filename)
+	filenameWithoutExtension := filename[0 : len(filename)-len(extension)]
+
+	commandLineArgs := []string{"-configFile", filenameWithoutExtension, "-configPath", filepath.Dir(file.Name())}
+
+	if apiKey != "" {
+		commandLineArgs = append(commandLineArgs, "-apiKey", apiKey)
+	}
+
+	if url != "" {
+		commandLineArgs = append(commandLineArgs, "-url", url)
+	}
+
+	webArgs, err := args.ParseArgs(commandLineArgs)
+
+	if err != nil {
+		handleError(err, w)
+		return
+	}
+
+	results := entry.Entry(webArgs)
+
+	reporter := reporters.NewOctopusPlainCheckReporter(checks.Warning)
+	report, err := reporter.Generate(results)
+
+	if err != nil {
+		entry.ErrorExit("Failed to generate the report")
+	}
+
+	w.Header()["Content-Type"] = []string{"text/plain; charset=utf-8"}
+	w.WriteHeader(200)
+	if _, err := w.Write([]byte(report)); err != nil {
+		zap.L().Error(err.Error())
+	}
+}
+
+func handleError(err error, w http.ResponseWriter) {
+	zap.L().Error(err.Error())
+	w.WriteHeader(500)
+	if _, err := w.Write([]byte(err.Error())); err != nil {
+		zap.L().Error(err.Error())
+	}
+}
+
+func main() {
+	listenAddr := ":8080"
+	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
+		listenAddr = ":" + val
+	}
+	http.HandleFunc("/api/octolint", func(writer http.ResponseWriter, request *http.Request) {
+		switch request.Method {
+		case http.MethodPost:
+			octoterraHandler(writer, request)
+		default:
+			writer.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+	http.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			w.Header()["Content-Type"] = []string{"text/plain; charset=utf-8"}
+			w.WriteHeader(200)
+			w.Write([]byte("Healthy"))
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+
+	})
+	log.Printf("About to listen on %s. Go to https://127.0.0.1%s/", listenAddr, listenAddr)
+	log.Fatal(http.ListenAndServe(listenAddr, nil))
+}
