@@ -255,7 +255,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: octolint_linux_amd64_azure.zip
+          asset_path: functions/octolint_linux_amd64_azure.zip
           asset_name: octolint_linux_amd64_azure.zip
           asset_content_type: application/octet-stream
       - name: Push packages to Octopus Deploy
