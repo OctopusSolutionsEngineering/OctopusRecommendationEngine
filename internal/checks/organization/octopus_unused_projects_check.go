@@ -84,7 +84,7 @@ func (o OctopusUnusedProjectsCheck) Execute() (checks.OctopusCheckResult, error)
 
 	if len(unusedProjects) > 0 {
 		return checks.NewOctopusCheckResultImpl(
-			"The following projects have not had any tasks "+daysString+" days:\n"+strings.Join(unusedProjects, "\n"),
+			"The following projects have not had any tasks in "+daysString+" days:\n"+strings.Join(unusedProjects, "\n"),
 			o.Id(),
 			"",
 			checks.Warning,
