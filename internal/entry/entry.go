@@ -48,7 +48,7 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 	}
 
 	if _, err := url.ParseRequestURI(octolintConfig.Url); err != nil {
-		return nil, errors.New("The URL \"" + octolintConfig.Url + "\"is not valid")
+		return nil, errors.New("The URL \"" + octolintConfig.Url + "\" is not valid")
 	}
 
 	if octolintConfig.ApiKey == "" {
