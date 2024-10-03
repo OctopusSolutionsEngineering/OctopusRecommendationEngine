@@ -47,6 +47,10 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 		return nil, errors.New("You must specify the URL with the -url argument")
 	}
 
+	if _, err := url.ParseRequestURI(octolintConfig.Url); err != nil {
+		return nil, errors.New("The URL \"" + octolintConfig.Url + "\"is not valid")
+	}
+
 	if octolintConfig.ApiKey == "" {
 		return nil, errors.New("You must specify the API key with the -apiKey argument")
 	}
