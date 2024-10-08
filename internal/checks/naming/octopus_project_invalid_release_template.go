@@ -62,7 +62,12 @@ func (o OctopusProjectReleaseTemplateRegex) Execute() (checks.OctopusCheckResult
 			checks.Naming), nil
 	}
 
-	projects, err := client_wrapper.GetProjects(o.config.MaxInvalidReleaseTemplateProjects, o.client, o.client.GetSpaceID())
+	projects, err := client_wrapper.GetProjectsWithFilter(
+		o.client,
+		o.client.GetSpaceID(),
+		o.config.ExcludeProjectsExcept,
+		o.config.ExcludeProjects,
+		o.config.MaxInvalidReleaseTemplateProjects)
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Naming, err)

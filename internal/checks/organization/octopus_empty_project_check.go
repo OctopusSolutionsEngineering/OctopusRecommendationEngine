@@ -40,7 +40,12 @@ func (o OctopusEmptyProjectCheck) Execute() (checks.OctopusCheckResult, error) {
 		zap.L().Debug("Ended check " + o.Id())
 	}()
 
-	projects, err := client_wrapper.GetProjects(o.config.MaxEmptyProjectCheckProjects, o.client, o.client.GetSpaceID())
+	projects, err := client_wrapper.GetProjectsWithFilter(
+		o.client,
+		o.client.GetSpaceID(),
+		o.config.ExcludeProjectsExcept,
+		o.config.ExcludeProjects,
+		o.config.MaxEmptyProjectCheckProjects)
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)

@@ -62,7 +62,12 @@ func (o OctopusProjectContainerImageRegex) Execute() (checks.OctopusCheckResult,
 			checks.Naming), nil
 	}
 
-	projects, err := client_wrapper.GetProjects(o.config.MaxInvalidContainerImageProjects, o.client, o.client.GetSpaceID())
+	projects, err := client_wrapper.GetProjectsWithFilter(
+		o.client,
+		o.client.GetSpaceID(),
+		o.config.ExcludeProjectsExcept,
+		o.config.ExcludeProjects,
+		o.config.MaxInvalidContainerImageProjects)
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Naming, err)

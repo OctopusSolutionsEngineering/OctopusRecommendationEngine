@@ -1,5 +1,9 @@
 package config
 
+import (
+	"strings"
+)
+
 type OctolintConfig struct {
 	Url           string
 	Space         string
@@ -12,6 +16,11 @@ type OctolintConfig struct {
 	ConfigFile    string
 	ConfigPath    string
 	Verbose       bool
+
+	// Global filters for resources
+	ExcludeProjects       StringSliceArgs
+	ExcludeProjectsExcept StringSliceArgs
+	ExcludeProjectsRegex  StringSliceArgs
 
 	// These values are used to configure individual checks
 	MaxEnvironments                           int
@@ -61,4 +70,21 @@ type OctolintConfig struct {
 	MaxInvalidNameTargets                     int
 	MaxInsecureK8sTargets                     int
 	MaxDeploymentTasks                        int
+}
+
+type StringSliceArgs []string
+
+func (i *StringSliceArgs) String() string {
+	return "A collection of strings passed as arguments"
+}
+
+func (i *StringSliceArgs) Set(value string) error {
+	trimmed := strings.TrimSpace(value)
+
+	if len(trimmed) == 0 {
+		return nil
+	}
+
+	*i = append(*i, trimmed)
+	return nil
 }

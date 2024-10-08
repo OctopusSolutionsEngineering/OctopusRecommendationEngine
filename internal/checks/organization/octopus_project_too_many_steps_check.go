@@ -41,7 +41,12 @@ func (o OctopusProjectTooManyStepsCheck) Execute() (checks.OctopusCheckResult, e
 		zap.L().Debug("Ended check " + o.Id())
 	}()
 
-	projects, err := client_wrapper.GetProjects(o.config.MaxProjectStepsProjects, o.client, o.client.GetSpaceID())
+	projects, err := client_wrapper.GetProjectsWithFilter(
+		o.client,
+		o.client.GetSpaceID(),
+		o.config.ExcludeProjectsExcept,
+		o.config.ExcludeProjects,
+		o.config.MaxProjectStepsProjects)
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)

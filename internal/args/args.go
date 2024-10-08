@@ -66,6 +66,10 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 	flags.StringVar(&octolintConfig.ProjectStepWorkerPoolRegex, "projectStepWorkerPoolRegex", "", "The regular expression used to validate step worker pools for the  "+naming.OctoLintProjectReleaseTemplate+" check")
 	flags.StringVar(&octolintConfig.LifecycleNameRegex, "lifecycleNameRegex", "", "The regular expression used to validate lifecycle names for the  "+naming.OctoLintInvalidLifecycleNames+" check")
 
+	flags.Var(&octolintConfig.ExcludeProjects, "excludeProjects", "Exclude a project from being scanned.")
+	flags.Var(&octolintConfig.ExcludeProjectsRegex, "excludeProjectsRegex", "Exclude a project from being scanned.")
+	flags.Var(&octolintConfig.ExcludeProjectsExcept, "excludeProjectsExcept", "All projects except those defined with excludeProjectsExcept are scanned.")
+
 	err := flags.Parse(args)
 
 	if err != nil {

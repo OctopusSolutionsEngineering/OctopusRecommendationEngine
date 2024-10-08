@@ -45,7 +45,12 @@ func (o OctopusDeploymentQueuedByAdminCheck) Execute() (checks.OctopusCheckResul
 		zap.L().Debug("Ended check " + o.Id())
 	}()
 
-	projects, err := client_wrapper.GetProjects(o.config.MaxDeploymentsByAdminProjects, o.client, o.client.GetSpaceID())
+	projects, err := client_wrapper.GetProjectsWithFilter(
+		o.client,
+		o.client.GetSpaceID(),
+		o.config.ExcludeProjectsExcept,
+		o.config.ExcludeProjects,
+		o.config.MaxDeploymentsByAdminProjects)
 
 	if err != nil {
 		return o.errorHandler.HandleError(o.Id(), checks.Security, err)
