@@ -10,6 +10,7 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/security"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/defaults"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/types"
 	"github.com/spf13/viper"
 	"os"
 	"strings"
@@ -149,8 +150,15 @@ func bindFlags(flags *flag.FlagSet, v *viper.Viper) (funErr error) {
 		if !defined && v.IsSet(allFlags.Name) {
 			configName := strings.ReplaceAll(allFlags.Name, "-", "")
 
-			for _, value := range v.GetStringSlice(configName) {
-				err := flags.Set(allFlags.Name, value)
+			anyValue := v.Get(configName)
+
+			if types.IsArrayOrSlice(anyValue) {
+				for _, value := range v.GetStringSlice(configName) {
+					err := flags.Set(allFlags.Name, value)
+					funcError = errors.Join(funcError, err)
+				}
+			} else {
+				err := flags.Set(allFlags.Name, v.GetString(configName))
 				funcError = errors.Join(funcError, err)
 			}
 		}
