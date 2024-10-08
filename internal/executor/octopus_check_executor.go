@@ -8,6 +8,7 @@ import (
 )
 
 const ParallelTasks = 15
+const CheckParallelTasks = 2
 
 // OctopusCheckExecutor is responsible for running each lint check and returning the results. It deals with things
 // like retries and error handling.

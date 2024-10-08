@@ -1,6 +1,7 @@
 package organization
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -8,7 +9,10 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/executor"
+	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"strings"
 	"time"
 )
@@ -52,44 +56,65 @@ func (o OctopusUnusedProjectsCheck) Execute() (checks.OctopusCheckResult, error)
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
 	}
 
-	unusedProjects := []string{}
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(executor.CheckParallelTasks)
+
+	unusedProjects := threadsafe.NewSlice[string]()
+	goroutineErrors := threadsafe.NewSlice[error]()
+
 	for i, project := range projects {
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
+		i := i
 
-		// Ignore disabled projects
-		if project.IsDisabled {
-			continue
-		}
+		g.Go(func() error {
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		projectHasTask := false
-
-		tasks, err := o.client.Tasks.Get(tasks.TasksQuery{
-			Project: project.ID,
-			Skip:    0,
-			Take:    100,
-		})
-
-		if err != nil {
-			return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
-		}
-
-		for _, task := range tasks.Items {
-			if task.StartTime != nil && task.StartTime.After(time.Now().Add(-time.Hour*24*time.Duration(o.config.MaxDaysSinceLastTask))) {
-				projectHasTask = true
-				break
+			// Ignore disabled projects
+			if project.IsDisabled {
+				return nil
 			}
-		}
 
-		if !projectHasTask {
-			unusedProjects = append(unusedProjects, project.Name)
-		}
+			projectHasTask := false
+
+			tasks, err := o.client.Tasks.Get(tasks.TasksQuery{
+				Project: project.ID,
+				Skip:    0,
+				Take:    100,
+			})
+
+			if err != nil {
+				goroutineErrors.Append(err)
+				return nil
+			}
+
+			for _, task := range tasks.Items {
+				if task.StartTime != nil && task.StartTime.After(time.Now().Add(-time.Hour*24*time.Duration(o.config.MaxDaysSinceLastTask))) {
+					projectHasTask = true
+					break
+				}
+			}
+
+			if !projectHasTask {
+				unusedProjects.Append(project.Name)
+			}
+
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Organization, goroutineErrors.Values()[0])
 	}
 
 	daysString := fmt.Sprintf("%d", o.config.MaxDaysSinceLastTask)
 
-	if len(unusedProjects) > 0 {
+	if unusedProjects.Length() > 0 {
 		return checks.NewOctopusCheckResultImpl(
-			"The following projects have not had any tasks in "+daysString+" days:\n"+strings.Join(unusedProjects, "\n"),
+			"The following projects have not had any tasks in "+daysString+" days:\n"+strings.Join(unusedProjects.Values(), "\n"),
 			o.Id(),
 			"",
 			checks.Warning,
