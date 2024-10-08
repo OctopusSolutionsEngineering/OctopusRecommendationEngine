@@ -48,7 +48,7 @@ func GetProjectByName(name string, client newclient.Client, spaceID string) ([]*
 
 func GetProjectsWithFilter(client newclient.Client, spaceID string, excludeProjectsExcept config.StringSliceArgs, excludeProjects config.StringSliceArgs, maxItems int) ([]*projects.Project, error) {
 	if len(excludeProjectsExcept) != 0 {
-		return GetNamedProjects()
+		return GetNamedProjects(client, spaceID, excludeProjectsExcept)
 	}
 
 	if allProjects, err := GetProjects(maxItems, client, spaceID); err != nil {
