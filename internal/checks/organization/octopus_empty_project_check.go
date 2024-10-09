@@ -1,6 +1,7 @@
 package organization
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -8,7 +9,9 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"strings"
 )
 
@@ -53,27 +56,48 @@ func (o OctopusEmptyProjectCheck) Execute(concurrency int) (checks.OctopusCheckR
 
 	runbooks, err := o.client.Runbooks.GetAll()
 
-	emptyProjects := []string{}
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(concurrency)
+
+	emptyProjects := threadsafe.NewSlice[string]()
+	goroutineErrors := threadsafe.NewSlice[error]()
+
 	for i, p := range projects {
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
+		i := i
+		p := p
 
-		stepCount, err := o.stepsInDeploymentProcess(p.DeploymentProcessID)
+		g.Go(func() error {
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		if err != nil {
-			if !o.errorHandler.ShouldContinue(err) {
-				return nil, err
+			stepCount, err := o.stepsInDeploymentProcess(p.DeploymentProcessID)
+
+			if err != nil {
+				if !o.errorHandler.ShouldContinue(err) {
+					goroutineErrors.Append(err)
+				}
+				return nil
 			}
-			continue
-		}
 
-		if runbooksInProject(p.ID, runbooks) == 0 && stepCount == 0 {
-			emptyProjects = append(emptyProjects, p.Name)
-		}
+			if runbooksInProject(p.ID, runbooks) == 0 && stepCount == 0 {
+				emptyProjects.Append(p.Name)
+			}
+
+			return nil
+		})
 	}
 
-	if len(emptyProjects) > 0 {
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Organization, goroutineErrors.Values()[0])
+	}
+
+	if emptyProjects.Length() > 0 {
 		return checks.NewOctopusCheckResultImpl(
-			"The following projects have no runbooks and no deployment process:\n"+strings.Join(emptyProjects, "\n"),
+			"The following projects have no runbooks and no deployment process:\n"+strings.Join(emptyProjects.Values(), "\n"),
 			o.Id(),
 			"",
 			checks.Warning,

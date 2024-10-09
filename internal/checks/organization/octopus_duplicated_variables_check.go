@@ -1,6 +1,7 @@
 package organization
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -9,10 +10,13 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
+	"golang.org/x/sync/errgroup"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const OctoLintDuplicatedVariables = "OctoLintDuplicatedVariables"
@@ -30,6 +34,7 @@ type OctopusDuplicatedVariablesCheck struct {
 	client       *client.Client
 	errorHandler checks.OctopusClientErrorHandler
 	config       *config.OctolintConfig
+	mu           sync.Mutex
 }
 
 func NewOctopusDuplicatedVariablesCheck(client *client.Client, config *config.OctolintConfig, errorHandler checks.OctopusClientErrorHandler) OctopusDuplicatedVariablesCheck {
@@ -62,24 +67,49 @@ func (o OctopusDuplicatedVariablesCheck) Execute(concurrency int) (checks.Octopu
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
 	}
 
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(concurrency)
+
+	goroutineErrors := threadsafe.NewSlice[error]()
+
 	projectVars := map[*projects2.Project]variables.VariableSet{}
 	for i, p := range projects {
+		i := i
+		p := p
+
 		if o.config.MaxDuplicateVariableProjects != 0 && i >= o.config.MaxDuplicateVariableProjects {
 			break
 		}
 
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
+		g.Go(func() error {
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		variableSet, err := o.client.Variables.GetAll(p.ID)
+			variableSet, err := o.client.Variables.GetAll(p.ID)
 
-		if err != nil {
-			if !o.errorHandler.ShouldContinue(err) {
-				return nil, err
+			if err != nil {
+				if !o.errorHandler.ShouldContinue(err) {
+					goroutineErrors.Append(err)
+				}
+				return nil
 			}
-			continue
-		}
 
-		projectVars[p] = variableSet
+			// Lock the map so we are not writing to it concurrently
+			o.mu.Lock()
+			defer o.mu.Unlock()
+
+			projectVars[p] = variableSet
+
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Organization, goroutineErrors.Values()[0])
 	}
 
 	duplicateVars := []projectVar{}

@@ -1,6 +1,7 @@
 package organization
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -12,7 +13,9 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"regexp"
 	"strings"
 	"time"
@@ -53,38 +56,59 @@ func (o OctopusUnusedTargetsCheck) Execute(concurrency int) (checks.OctopusCheck
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
 	}
 
-	unusedMachines := []string{}
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(concurrency)
+
+	unusedMachines := threadsafe.NewSlice[string]()
+	goroutineErrors := threadsafe.NewSlice[error]()
+
 	linksTemplate := regexp.MustCompile(`\{.+\}`)
 	for i, m := range targets {
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(targets))*100) + "% complete")
 
-		tasksLink := linksTemplate.ReplaceAllString(m.Links["TasksTemplate"], "")
-		tasks, err := newclient.Get[resources.Resources[tasks.Task]](o.client.HttpSession(), tasksLink+"?type=Deployment")
+		i := i
+		m := m
 
-		if err != nil {
-			if !o.errorHandler.ShouldContinue(err) {
-				return nil, err
+		g.Go(func() error {
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(targets))*100) + "% complete")
+
+			tasksLink := linksTemplate.ReplaceAllString(m.Links["TasksTemplate"], "")
+			tasks, err := newclient.Get[resources.Resources[tasks.Task]](o.client.HttpSession(), tasksLink+"?type=Deployment")
+
+			if err != nil {
+				if !o.errorHandler.ShouldContinue(err) {
+					goroutineErrors.Append(err)
+				}
+				return nil
 			}
-			continue
-		}
 
-		recentTask := false
-		for _, t := range tasks.Items {
-			if t.CompletedTime != nil && time.Now().Sub(*t.CompletedTime) < maxTimeSinceLastMachineDeployment {
-				recentTask = true
-				break
+			recentTask := false
+			for _, t := range tasks.Items {
+				if t.CompletedTime != nil && time.Now().Sub(*t.CompletedTime) < maxTimeSinceLastMachineDeployment {
+					recentTask = true
+					break
+				}
 			}
-		}
 
-		if !recentTask {
-			unusedMachines = append(unusedMachines, m.Name)
-		}
+			if !recentTask {
+				unusedMachines.Append(m.Name)
+			}
 
+			return nil
+		})
 	}
 
-	if len(unusedMachines) > 0 {
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Organization, goroutineErrors.Values()[0])
+	}
+
+	if unusedMachines.Length() > 0 {
 		return checks.NewOctopusCheckResultImpl(
-			"The following targets have not performed a deployment in 30 days:\n"+strings.Join(unusedMachines, "\n"),
+			"The following targets have not performed a deployment in 30 days:\n"+strings.Join(unusedMachines.Values(), "\n"),
 			o.Id(),
 			"",
 			checks.Warning,
