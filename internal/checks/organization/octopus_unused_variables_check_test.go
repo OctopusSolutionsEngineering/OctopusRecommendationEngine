@@ -29,7 +29,7 @@ func TestNoUnusedVars(t *testing.T) {
 
 		check := NewOctopusUnusedVariablesCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -62,7 +62,7 @@ func TestNoUnusedVarsInOneHundrenProjects(t *testing.T) {
 
 		check := NewOctopusUnusedVariablesCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -95,7 +95,7 @@ func TestUnusedVars(t *testing.T) {
 
 		check := NewOctopusUnusedVariablesCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err

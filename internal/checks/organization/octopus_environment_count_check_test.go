@@ -29,7 +29,7 @@ func TestNormalEnvironmentCount(t *testing.T) {
 
 		check := NewOctopusEnvironmentCountCheck(newSpaceClient, &config.OctolintConfig{MaxEnvironments: 10}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -62,7 +62,7 @@ func TestExcessiveEnvironmentCount(t *testing.T) {
 
 		check := NewOctopusEnvironmentCountCheck(newSpaceClient, &config.OctolintConfig{MaxEnvironments: 10}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err

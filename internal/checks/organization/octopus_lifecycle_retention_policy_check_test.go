@@ -49,7 +49,7 @@ func TestLifecyclesMeetRecommendations(t *testing.T) {
 
 		check := NewOctopusLifecycleRetentionPolicyCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		// Assert
 		if result.Severity() != checks.Ok {
@@ -83,7 +83,7 @@ func TestLifecycleKeepsReleasesForever(t *testing.T) {
 
 		check := NewOctopusLifecycleRetentionPolicyCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -121,7 +121,7 @@ func TestLifecycleKeepsFilesForever(t *testing.T) {
 
 		check := NewOctopusLifecycleRetentionPolicyCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -159,7 +159,7 @@ func TestLifecyclePhaseKeepsReleasesForever(t *testing.T) {
 
 		check := NewOctopusLifecycleRetentionPolicyCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -197,7 +197,7 @@ func TestLifecyclePhaseKeepsFilesForever(t *testing.T) {
 
 		check := NewOctopusLifecycleRetentionPolicyCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err

@@ -35,7 +35,7 @@ func TestInsecureK8s(t *testing.T) {
 			&config.OctolintConfig{},
 			checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err

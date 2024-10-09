@@ -29,7 +29,7 @@ func TestProjectSpecificEnvironmentsFromDefaultLifecycle(t *testing.T) {
 
 		check := NewOctopusProjectSpecificEnvironmentCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -62,7 +62,7 @@ func TestProjectSpecificEnvironmentsFromCustomLifecycle(t *testing.T) {
 
 		check := NewOctopusProjectSpecificEnvironmentCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err

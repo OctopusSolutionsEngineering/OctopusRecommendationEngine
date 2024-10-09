@@ -128,7 +128,7 @@ func TestDeployedByAdmin(t *testing.T) {
 
 		check := NewOctopusDeploymentQueuedByAdminCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -279,7 +279,7 @@ func TestDeployedByUser(t *testing.T) {
 
 		check := NewOctopusDeploymentQueuedByAdminCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err

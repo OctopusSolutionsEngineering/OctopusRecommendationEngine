@@ -30,7 +30,7 @@ func TestNormalProjectCount(t *testing.T) {
 
 		check := NewOctopusDefaultProjectGroupCountCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -63,7 +63,7 @@ func TestExcessiveProjectCount(t *testing.T) {
 
 		check := NewOctopusDefaultProjectGroupCountCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
@@ -115,7 +115,7 @@ func TestExcessiveProjectCountWithPermissionsError(t *testing.T) {
 
 		check := NewOctopusDefaultProjectGroupCountCheck(limitedClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err

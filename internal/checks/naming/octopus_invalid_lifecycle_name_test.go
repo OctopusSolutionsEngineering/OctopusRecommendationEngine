@@ -37,7 +37,7 @@ func TestLifecyclesInvalidName(t *testing.T) {
 			},
 			checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		// Assert
 		if result == nil || result.Severity() != checks.Warning {

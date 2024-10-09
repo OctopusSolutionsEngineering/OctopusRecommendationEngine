@@ -1750,7 +1750,7 @@ func TestLongTaskQueue(t *testing.T) {
 	newSpaceClient, err := octoclient.CreateClient(server.URL, "Spaces-1", test.ApiKey)
 	check := NewOctopusDeploymentQueuedTimeCheck(newSpaceClient, &config.OctolintConfig{}, "http://test.app", "Spaces-1", checks.OctopusClientPermissiveErrorHandler{})
 
-	result, err := check.Execute()
+	result, err := check.Execute(2)
 
 	if err != nil {
 		t.Fatal("Check produced an error")

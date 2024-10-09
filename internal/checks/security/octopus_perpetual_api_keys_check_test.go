@@ -49,7 +49,7 @@ func TestPerpetualApiKeys(t *testing.T) {
 
 		check := NewOctopusPerpetualApiKeysCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err

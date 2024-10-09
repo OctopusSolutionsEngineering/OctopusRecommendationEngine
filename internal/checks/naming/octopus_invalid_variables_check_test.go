@@ -34,7 +34,7 @@ func TestInvalidVariableNames(t *testing.T) {
 			},
 			checks.OctopusClientPermissiveErrorHandler{})
 
-		result, err := check.Execute()
+		result, err := check.Execute(2)
 
 		if err != nil {
 			return err
