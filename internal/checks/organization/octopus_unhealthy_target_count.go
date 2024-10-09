@@ -96,6 +96,15 @@ func (o OctopusUnhealthyTargetCheck) Execute(concurrency int) (checks.OctopusChe
 		})
 	}
 
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Organization, goroutineErrors.Values()[0])
+	}
+
 	if unhealthyMachines.Length() > 0 {
 		return checks.NewOctopusCheckResultImpl(
 			"The following targets have not been healthy in the last 30 days:\n"+strings.Join(unhealthyMachines.Values(), "\n"),

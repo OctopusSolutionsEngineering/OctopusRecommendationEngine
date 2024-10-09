@@ -1,6 +1,7 @@
 package security
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -10,8 +11,10 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
+	"golang.org/x/sync/errgroup"
 	"strings"
 	"time"
 )
@@ -62,70 +65,92 @@ func (o OctopusDeploymentQueuedByAdminCheck) Execute(concurrency int) (checks.Oc
 		return o.errorHandler.HandleError(o.Id(), checks.Security, err)
 	}
 
-	projectsDeployedByAdmins := []string{}
-
 	now := time.Now()
 	fromDate := now.AddDate(0, -3, 0)
 	from := fromDate.Format("2006-01-02")
 
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(concurrency)
+
+	goroutineErrors := threadsafe.NewSlice[error]()
+	projectsDeployedByAdmins := threadsafe.NewSlice[string]()
+
 	for i, p := range projects {
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		projectId := p.ID
-		usersWhoDeployedProject := []string{}
+		i := i
+		p := p
 
-		resource, err := o.client.Events.Get(events.EventsQuery{
-			EventCategories: []string{"DeploymentQueued"},
-			Projects:        []string{projectId},
-			Skip:            0,
-			Take:            100,
-			From:            from,
-		})
+		g.Go(func() error {
 
-		if err != nil {
-			if !o.errorHandler.ShouldContinue(err) {
-				return nil, err
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
+
+			projectId := p.ID
+			usersWhoDeployedProject := []string{}
+
+			resource, err := o.client.Events.Get(events.EventsQuery{
+				EventCategories: []string{"DeploymentQueued"},
+				Projects:        []string{projectId},
+				Skip:            0,
+				Take:            100,
+				From:            from,
+			})
+
+			if err != nil {
+				if !o.errorHandler.ShouldContinue(err) {
+					goroutineErrors.Append(err)
+				}
+				return nil
 			}
-			continue
-		}
 
-		if resource != nil {
-			for _, r := range resource.Items {
-				if r.Username == "system" {
-					continue
-				}
-
-				user, err := o.client.Users.Get(users.UsersQuery{
-					Filter: r.Username,
-					Skip:   0,
-					Take:   1,
-				})
-
-				if err != nil {
-					if !o.errorHandler.ShouldContinue(err) {
-						return nil, err
+			if resource != nil {
+				for _, r := range resource.Items {
+					if r.Username == "system" {
+						continue
 					}
-					continue
-				}
 
-				for _, u := range user.Items {
-					for _, t := range teams {
-						if slices.Index(t.MemberUserIDs, u.ID) != -1 && slices.Index(usersWhoDeployedProject, u.Username) == -1 {
-							usersWhoDeployedProject = append(usersWhoDeployedProject, u.Username)
+					user, err := o.client.Users.Get(users.UsersQuery{
+						Filter: r.Username,
+						Skip:   0,
+						Take:   1,
+					})
+
+					if err != nil {
+						if !o.errorHandler.ShouldContinue(err) {
+							goroutineErrors.Append(err)
+						}
+						return nil
+					}
+
+					for _, u := range user.Items {
+						for _, t := range teams {
+							if slices.Index(t.MemberUserIDs, u.ID) != -1 && slices.Index(usersWhoDeployedProject, u.Username) == -1 {
+								usersWhoDeployedProject = append(usersWhoDeployedProject, u.Username)
+							}
 						}
 					}
 				}
 			}
-		}
 
-		if len(usersWhoDeployedProject) != 0 {
-			projectsDeployedByAdmins = append(projectsDeployedByAdmins, p.Name+" ("+strings.Join(usersWhoDeployedProject, ",")+")")
-		}
+			if len(usersWhoDeployedProject) != 0 {
+				projectsDeployedByAdmins.Append(p.Name + " (" + strings.Join(usersWhoDeployedProject, ",") + ")")
+			}
+
+			return nil
+		})
 	}
 
-	if len(projectsDeployedByAdmins) != 0 {
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Organization, goroutineErrors.Values()[0])
+	}
+
+	if projectsDeployedByAdmins.Length() != 0 {
 		return checks.NewOctopusCheckResultImpl(
-			"The following projects were deployed by admins. Consider creating a limited user account to perform deployments:\n"+strings.Join(projectsDeployedByAdmins, "\n"),
+			"The following projects were deployed by admins. Consider creating a limited user account to perform deployments:\n"+strings.Join(projectsDeployedByAdmins.Values(), "\n"),
 			o.Id(),
 			"",
 			checks.Warning,

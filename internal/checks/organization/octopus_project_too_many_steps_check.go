@@ -1,6 +1,7 @@
 package organization
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -8,7 +9,9 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"strings"
 )
 
@@ -52,27 +55,50 @@ func (o OctopusProjectTooManyStepsCheck) Execute(concurrency int) (checks.Octopu
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
 	}
 
-	complexProjects := []string{}
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(concurrency)
+
+	complexProjects := threadsafe.NewSlice[string]()
+	goroutineErrors := threadsafe.NewSlice[error]()
+
 	for i, p := range projects {
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		stepCount, err := o.stepsInDeploymentProcess(p.DeploymentProcessID)
+		i := i
+		p := p
 
-		if err != nil {
-			if !o.errorHandler.ShouldContinue(err) {
-				return nil, err
+		g.Go(func() error {
+
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
+
+			stepCount, err := o.stepsInDeploymentProcess(p.DeploymentProcessID)
+
+			if err != nil {
+				if !o.errorHandler.ShouldContinue(err) {
+					goroutineErrors.Append(err)
+				}
+				return nil
 			}
-			continue
-		}
 
-		if stepCount >= maxStepCount {
-			complexProjects = append(complexProjects, p.Name)
-		}
+			if stepCount >= maxStepCount {
+				complexProjects.Append(p.Name)
+			}
+
+			return nil
+		})
 	}
 
-	if len(complexProjects) > 0 {
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Organization, goroutineErrors.Values()[0])
+	}
+
+	if complexProjects.Length() > 0 {
 		return checks.NewOctopusCheckResultImpl(
-			"The following projects have 20 or more steps:\n"+strings.Join(complexProjects, "\n"),
+			"The following projects have 20 or more steps:\n"+strings.Join(complexProjects.Values(), "\n"),
 			o.Id(),
 			"",
 			checks.Warning,

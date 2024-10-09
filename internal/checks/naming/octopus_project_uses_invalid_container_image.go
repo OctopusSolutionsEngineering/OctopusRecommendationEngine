@@ -1,6 +1,7 @@
 package naming
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -9,7 +10,9 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"regexp"
 	"strings"
 )
@@ -73,44 +76,67 @@ func (o OctopusProjectContainerImageRegex) Execute(concurrency int) (checks.Octo
 		return o.errorHandler.HandleError(o.Id(), checks.Naming, err)
 	}
 
-	actionsWithInvalidImages := []string{}
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(concurrency)
+
+	actionsWithInvalidImages := threadsafe.NewSlice[string]()
+	goroutineErrors := threadsafe.NewSlice[error]()
+
 	for i, p := range projects {
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		deploymentProcess, err := o.stepsInDeploymentProcess(p.DeploymentProcessID)
+		i := i
+		p := p
 
-		if err != nil {
-			if !o.errorHandler.ShouldContinue(err) {
-				return nil, err
-			}
-			continue
-		}
+		g.Go(func() error {
 
-		if deploymentProcess == nil {
-			continue
-		}
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		for _, s := range deploymentProcess.Steps {
-			for _, a := range s.Actions {
-				if a.Container == nil || strings.TrimSpace(a.Container.Image) == "" {
-					continue
+			deploymentProcess, err := o.stepsInDeploymentProcess(p.DeploymentProcessID)
+
+			if err != nil {
+				if !o.errorHandler.ShouldContinue(err) {
+					goroutineErrors.Append(err)
 				}
+				return nil
+			}
 
-				if !regex.Match([]byte(a.Container.Image)) {
-					actionsWithInvalidImages = append(actionsWithInvalidImages, p.Name+"/"+a.Name+": "+a.Container.Image)
+			if deploymentProcess == nil {
+				return nil
+			}
+
+			for _, s := range deploymentProcess.Steps {
+				for _, a := range s.Actions {
+					if a.Container == nil || strings.TrimSpace(a.Container.Image) == "" {
+						continue
+					}
+
+					if !regex.Match([]byte(a.Container.Image)) {
+						actionsWithInvalidImages.Append(p.Name + "/" + a.Name + ": " + a.Container.Image)
+					}
 				}
 			}
-		}
+
+			return nil
+		})
 
 	}
 
-	if len(actionsWithInvalidImages) > 0 {
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Naming, goroutineErrors.Values()[0])
+	}
+
+	if actionsWithInvalidImages.Length() > 0 {
 		return checks.NewOctopusCheckResultImpl(
-			"The following project actions do not match the regex "+o.config.ContainerImageRegex+":\n"+strings.Join(actionsWithInvalidImages, "\n"),
+			"The following project actions do not match the regex "+o.config.ContainerImageRegex+":\n"+strings.Join(actionsWithInvalidImages.Values(), "\n"),
 			o.Id(),
 			"",
 			checks.Warning,
-			checks.Organization), nil
+			checks.Naming), nil
 	}
 
 	return checks.NewOctopusCheckResultImpl(
@@ -118,7 +144,7 @@ func (o OctopusProjectContainerImageRegex) Execute(concurrency int) (checks.Octo
 		o.Id(),
 		"",
 		checks.Ok,
-		checks.Organization), nil
+		checks.Naming), nil
 }
 
 func (o OctopusProjectContainerImageRegex) stepsInDeploymentProcess(deploymentProcessID string) (*deployments.DeploymentProcess, error) {

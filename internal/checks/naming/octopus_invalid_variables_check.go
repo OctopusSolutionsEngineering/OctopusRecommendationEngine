@@ -1,6 +1,7 @@
 package naming
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -13,7 +14,9 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"regexp"
 	"strings"
 )
@@ -74,35 +77,57 @@ func (o OctopusInvalidVariableNameCheck) Execute(concurrency int) (checks.Octopu
 			checks.Naming), nil
 	}
 
-	messages := []string{}
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(concurrency)
+
+	messages := threadsafe.NewSlice[string]()
+	goroutineErrors := threadsafe.NewSlice[error]()
+
 	for i, p := range projects {
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		variableSet, err := o.client.Variables.GetAll(p.ID)
+		i := i
+		p := p
 
-		if err != nil {
-			if !o.errorHandler.ShouldContinue(err) {
-				return nil, err
-			}
-			continue
-		}
+		g.Go(func() error {
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		for _, v := range variableSet.Variables {
-			if checks.IgnoreVariable(v.Name) {
-				continue
-			}
+			variableSet, err := o.client.Variables.GetAll(p.ID)
 
-			if !regex.Match([]byte(v.Name)) {
-				messages = append(messages, p.Name+": "+v.Name)
+			if err != nil {
+				if !o.errorHandler.ShouldContinue(err) {
+					goroutineErrors.Append(err)
+				}
+				return nil
 			}
 
-		}
+			for _, v := range variableSet.Variables {
+				if checks.IgnoreVariable(v.Name) {
+					continue
+				}
+
+				if !regex.Match([]byte(v.Name)) {
+					messages.Append(p.Name + ": " + v.Name)
+				}
+
+			}
+
+			return nil
+		})
 	}
 
-	if len(messages) > 0 {
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Naming, goroutineErrors.Values()[0])
+	}
+
+	if messages.Length() > 0 {
 
 		return checks.NewOctopusCheckResultImpl(
-			"The following variables do not match the regex "+o.config.VariableNameRegex+":\n"+strings.Join(messages, "\n"),
+			"The following variables do not match the regex "+o.config.VariableNameRegex+":\n"+strings.Join(messages.Values(), "\n"),
 			o.Id(),
 			"",
 			checks.Warning,

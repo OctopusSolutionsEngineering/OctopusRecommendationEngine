@@ -1,6 +1,7 @@
 package naming
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -10,8 +11,10 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/hayageek/threadsafe"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"regexp"
 	"strings"
 )
@@ -90,56 +93,78 @@ func (o OctopusProjectWorkerPoolRegex) Execute(concurrency int) (checks.OctopusC
 		defaultWorkerPool = defaultWorkerPools[0].Name
 	}
 
-	actionsWithInvalidWorkerPools := []string{}
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(concurrency)
+
+	actionsWithInvalidWorkerPools := threadsafe.NewSlice[string]()
+	goroutineErrors := threadsafe.NewSlice[error]()
+
 	for i, p := range projects {
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
+		i := i
+		p := p
 
-		deploymentProcess, err := o.stepsInDeploymentProcess(p.DeploymentProcessID)
+		g.Go(func() error {
 
-		if err != nil {
-			if !o.errorHandler.ShouldContinue(err) {
-				return nil, err
-			}
-			continue
-		}
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
 
-		if deploymentProcess == nil {
-			continue
-		}
+			deploymentProcess, err := o.stepsInDeploymentProcess(p.DeploymentProcessID)
 
-		for _, s := range deploymentProcess.Steps {
-			for _, a := range s.Actions {
-
-				if a.WorkerPoolVariable != "" {
-					continue
+			if err != nil {
+				if !o.errorHandler.ShouldContinue(err) {
+					goroutineErrors.Append(err)
 				}
+				return nil
+			}
 
-				if a.WorkerPool == "" {
-					if defaultWorkerPool != "" && !regex.Match([]byte(defaultWorkerPool)) {
+			if deploymentProcess == nil {
+				return nil
+			}
 
-						actionsWithInvalidWorkerPools = append(actionsWithInvalidWorkerPools, p.Name+"/"+a.Name+": "+defaultWorkerPool+" (default)")
+			for _, s := range deploymentProcess.Steps {
+				for _, a := range s.Actions {
+
+					if a.WorkerPoolVariable != "" {
+						continue
 					}
-				} else if !regex.Match([]byte(a.WorkerPool)) {
-					workerPool := lo.Filter(workerPools, func(item *workerpools.WorkerPoolListResult, index int) bool {
-						return item.ID == a.WorkerPool
-					})
 
-					if len(workerPool) == 1 && !regex.Match([]byte(workerPool[0].Name)) {
-						actionsWithInvalidWorkerPools = append(actionsWithInvalidWorkerPools, p.Name+"/"+a.Name+": "+workerPool[0].Name)
+					if a.WorkerPool == "" {
+						if defaultWorkerPool != "" && !regex.Match([]byte(defaultWorkerPool)) {
+
+							actionsWithInvalidWorkerPools.Append(p.Name + "/" + a.Name + ": " + defaultWorkerPool + " (default)")
+						}
+					} else if !regex.Match([]byte(a.WorkerPool)) {
+						workerPool := lo.Filter(workerPools, func(item *workerpools.WorkerPoolListResult, index int) bool {
+							return item.ID == a.WorkerPool
+						})
+
+						if len(workerPool) == 1 && !regex.Match([]byte(workerPool[0].Name)) {
+							actionsWithInvalidWorkerPools.Append(p.Name + "/" + a.Name + ": " + workerPool[0].Name)
+						}
 					}
 				}
 			}
-		}
+
+			return nil
+		})
 
 	}
 
-	if len(actionsWithInvalidWorkerPools) > 0 {
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Treat the first error as the root cause
+	if goroutineErrors.Length() > 0 {
+		return o.errorHandler.HandleError(o.Id(), checks.Naming, goroutineErrors.Values()[0])
+	}
+
+	if actionsWithInvalidWorkerPools.Length() > 0 {
 		return checks.NewOctopusCheckResultImpl(
-			"The following project actions use worker pools that do not match the regex "+o.config.ContainerImageRegex+":\n"+strings.Join(actionsWithInvalidWorkerPools, "\n"),
+			"The following project actions use worker pools that do not match the regex "+o.config.ContainerImageRegex+":\n"+strings.Join(actionsWithInvalidWorkerPools.Values(), "\n"),
 			o.Id(),
 			"",
 			checks.Warning,
-			checks.Organization), nil
+			checks.Naming), nil
 	}
 
 	return checks.NewOctopusCheckResultImpl(
@@ -147,7 +172,7 @@ func (o OctopusProjectWorkerPoolRegex) Execute(concurrency int) (checks.OctopusC
 		o.Id(),
 		"",
 		checks.Ok,
-		checks.Organization), nil
+		checks.Naming), nil
 }
 
 func (o OctopusProjectWorkerPoolRegex) stepsInDeploymentProcess(deploymentProcessID string) (*deployments.DeploymentProcess, error) {
