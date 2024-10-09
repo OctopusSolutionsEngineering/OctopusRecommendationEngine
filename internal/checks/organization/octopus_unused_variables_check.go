@@ -72,6 +72,7 @@ func (o OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusChe
 
 	for i, p := range projects {
 		i := i
+		p := p
 
 		g.Go(func() error {
 			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(projects))*100) + "% complete")
