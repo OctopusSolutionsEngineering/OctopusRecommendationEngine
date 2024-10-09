@@ -34,8 +34,8 @@ type OctopusUnusedVariablesCheck struct {
 	mu           sync.Mutex
 }
 
-func NewOctopusUnusedVariablesCheck(client *client.Client, config *config.OctolintConfig, errorHandler checks.OctopusClientErrorHandler) OctopusUnusedVariablesCheck {
-	return OctopusUnusedVariablesCheck{config: config, client: client, errorHandler: errorHandler}
+func NewOctopusUnusedVariablesCheck(client *client.Client, config *config.OctolintConfig, errorHandler checks.OctopusClientErrorHandler) *OctopusUnusedVariablesCheck {
+	return &OctopusUnusedVariablesCheck{config: config, client: client, errorHandler: errorHandler}
 }
 
 func (o *OctopusUnusedVariablesCheck) Id() string {

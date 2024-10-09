@@ -37,8 +37,8 @@ type OctopusDuplicatedVariablesCheck struct {
 	mu           sync.Mutex
 }
 
-func NewOctopusDuplicatedVariablesCheck(client *client.Client, config *config.OctolintConfig, errorHandler checks.OctopusClientErrorHandler) OctopusDuplicatedVariablesCheck {
-	return OctopusDuplicatedVariablesCheck{config: config, client: client, errorHandler: errorHandler}
+func NewOctopusDuplicatedVariablesCheck(client *client.Client, config *config.OctolintConfig, errorHandler checks.OctopusClientErrorHandler) *OctopusDuplicatedVariablesCheck {
+	return &OctopusDuplicatedVariablesCheck{config: config, client: client, errorHandler: errorHandler}
 }
 
 func (o *OctopusDuplicatedVariablesCheck) Id() string {
