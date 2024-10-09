@@ -34,7 +34,7 @@ func (o OctopusDeploymentQueuedByAdminCheck) Id() string {
 	return OctoLintDeploymentQueuedByAdmin
 }
 
-func (o OctopusDeploymentQueuedByAdminCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusDeploymentQueuedByAdminCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

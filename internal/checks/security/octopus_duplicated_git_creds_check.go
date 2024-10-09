@@ -43,7 +43,7 @@ func (o OctopusDuplicatedGitCredentialsCheck) Id() string {
 	return "OctoLintSharedGitUsername"
 }
 
-func (o OctopusDuplicatedGitCredentialsCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusDuplicatedGitCredentialsCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

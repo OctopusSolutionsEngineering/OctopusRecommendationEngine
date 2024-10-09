@@ -26,7 +26,7 @@ func (o OctopusInsecureFeedsCheck) Id() string {
 	return "OctoLintInsecureFeedsTargets"
 }
 
-func (o OctopusInsecureFeedsCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusInsecureFeedsCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

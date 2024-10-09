@@ -35,7 +35,7 @@ func (o OctopusProjectDefaultStepNames) Id() string {
 	return OctoLintProjectDefaultStepNames
 }
 
-func (o OctopusProjectDefaultStepNames) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusProjectDefaultStepNames) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

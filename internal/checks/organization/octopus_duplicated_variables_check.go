@@ -40,7 +40,7 @@ func (o OctopusDuplicatedVariablesCheck) Id() string {
 	return OctoLintDuplicatedVariables
 }
 
-func (o OctopusDuplicatedVariablesCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusDuplicatedVariablesCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

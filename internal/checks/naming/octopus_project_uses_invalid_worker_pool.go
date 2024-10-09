@@ -37,7 +37,7 @@ func (o OctopusProjectWorkerPoolRegex) Id() string {
 	return OctoLintProjectWorkerPool
 }
 
-func (o OctopusProjectWorkerPoolRegex) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusProjectWorkerPoolRegex) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

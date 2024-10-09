@@ -30,7 +30,7 @@ func (o OctopusInsecureK8sCheck) Id() string {
 	return OctoLintInsecureK8sTargets
 }
 
-func (o OctopusInsecureK8sCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusInsecureK8sCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

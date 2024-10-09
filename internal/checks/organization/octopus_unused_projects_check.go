@@ -9,7 +9,6 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
-	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/executor"
 	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -34,7 +33,7 @@ func (o OctopusUnusedProjectsCheck) Id() string {
 	return OctopusUnusedProjectsCheckName
 }
 
-func (o OctopusUnusedProjectsCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusUnusedProjectsCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}
@@ -57,7 +56,7 @@ func (o OctopusUnusedProjectsCheck) Execute() (checks.OctopusCheckResult, error)
 	}
 
 	g, _ := errgroup.WithContext(context.Background())
-	g.SetLimit(executor.CheckParallelTasks)
+	g.SetLimit(concurrency)
 
 	unusedProjects := threadsafe.NewSlice[string]()
 	goroutineErrors := threadsafe.NewSlice[error]()

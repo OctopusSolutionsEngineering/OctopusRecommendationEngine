@@ -27,7 +27,7 @@ func (o OctopusEnvironmentCountCheck) Id() string {
 	return OctopusEnvironmentCountCheckName
 }
 
-func (o OctopusEnvironmentCountCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusEnvironmentCountCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

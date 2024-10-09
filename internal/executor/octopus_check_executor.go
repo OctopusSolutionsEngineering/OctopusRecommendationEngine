@@ -3,6 +3,7 @@ package executor
 import (
 	"context"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/mathext"
 	"github.com/avast/retry-go/v4"
 	"golang.org/x/sync/errgroup"
 )
@@ -28,14 +29,14 @@ func (o OctopusCheckExecutor) ExecuteChecks(checkCollection []checks.OctopusChec
 	checkResults := []checks.OctopusCheckResult{}
 
 	g, _ := errgroup.WithContext(context.Background())
-	g.SetLimit(ParallelTasks)
+	g.SetLimit(mathext.TopLevelConcurrency(ParallelTasks, len(checkCollection)))
 
 	for _, c := range checkCollection {
 		c := c
 		g.Go(func() error {
 			err := retry.Do(
 				func() error {
-					result, err := c.Execute()
+					result, err := c.Execute(mathext.InternalLevelConcurrency(ParallelTasks, CheckParallelTasks, len(checkCollection)))
 
 					if err != nil {
 						checkResults = append(

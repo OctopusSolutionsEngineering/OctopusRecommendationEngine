@@ -35,7 +35,7 @@ func (o OctopusProjectContainerImageRegex) Id() string {
 	return OctoLintContainerImageName
 }
 
-func (o OctopusProjectContainerImageRegex) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusProjectContainerImageRegex) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

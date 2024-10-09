@@ -8,7 +8,7 @@ import (
 type alwaysFailCheck struct {
 }
 
-func (o alwaysFailCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o alwaysFailCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	return checks.NewOctopusCheckResultImpl("This check always fails", o.Id(), "", checks.Error, ""), nil
 }
 
@@ -19,7 +19,7 @@ func (o alwaysFailCheck) Id() string {
 type alwaysPassCheck struct {
 }
 
-func (o alwaysPassCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o alwaysPassCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	return checks.NewOctopusCheckResultImpl("This check passed ok", o.Id(), "", checks.Ok, ""), nil
 }
 

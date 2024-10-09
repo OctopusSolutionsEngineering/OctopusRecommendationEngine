@@ -30,7 +30,7 @@ func (o OctopusProjectGroupsWithExclusiveEnvironmentsCheck) Id() string {
 	return OctoLintProjectGroupsWithExclusiveEnvironments
 }
 
-func (o OctopusProjectGroupsWithExclusiveEnvironmentsCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusProjectGroupsWithExclusiveEnvironmentsCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

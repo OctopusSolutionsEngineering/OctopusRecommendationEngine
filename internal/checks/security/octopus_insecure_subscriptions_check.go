@@ -27,7 +27,7 @@ func (o OctopusInsecureSubscriptionsCheck) Id() string {
 	return "OctoLintInsecureWebhookUrls"
 }
 
-func (o OctopusInsecureSubscriptionsCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusInsecureSubscriptionsCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

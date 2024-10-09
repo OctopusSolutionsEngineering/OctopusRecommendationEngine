@@ -41,7 +41,7 @@ func (o OctopusInvalidVariableNameCheck) Id() string {
 	return OctoLintInvalidVariableNames
 }
 
-func (o OctopusInvalidVariableNameCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusInvalidVariableNameCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

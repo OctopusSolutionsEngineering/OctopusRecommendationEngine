@@ -31,7 +31,7 @@ func (o OctopusUnhealthyTargetCheck) Id() string {
 	return OctoLintUnhealthyTargets
 }
 
-func (o OctopusUnhealthyTargetCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusUnhealthyTargetCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

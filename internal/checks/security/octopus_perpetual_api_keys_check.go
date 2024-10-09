@@ -39,7 +39,7 @@ func (o OctopusPerpetualApiKeysCheck) Id() string {
 	return "OctoLintPerpetualApiKeys"
 }
 
-func (o OctopusPerpetualApiKeysCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusPerpetualApiKeysCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

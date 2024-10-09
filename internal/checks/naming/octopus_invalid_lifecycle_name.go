@@ -32,7 +32,7 @@ func (o OctopusInvalidLifecycleName) Id() string {
 	return OctoLintInvalidLifecycleNames
 }
 
-func (o OctopusInvalidLifecycleName) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusInvalidLifecycleName) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

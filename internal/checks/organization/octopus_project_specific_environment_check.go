@@ -31,7 +31,7 @@ func (o OctopusProjectSpecificEnvironmentCheck) Id() string {
 	return OctoLintProjectSpecificEnvs
 }
 
-func (o OctopusProjectSpecificEnvironmentCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusProjectSpecificEnvironmentCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

@@ -30,7 +30,7 @@ func (o OctopusProjectTooManyStepsCheck) Id() string {
 	return OctoLintTooManySteps
 }
 
-func (o OctopusProjectTooManyStepsCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusProjectTooManyStepsCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

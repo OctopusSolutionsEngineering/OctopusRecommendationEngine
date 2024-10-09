@@ -33,7 +33,7 @@ func (o OctopusInvalidTargetName) Id() string {
 	return OctoLintInvalidTargetNames
 }
 
-func (o OctopusInvalidTargetName) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusInvalidTargetName) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

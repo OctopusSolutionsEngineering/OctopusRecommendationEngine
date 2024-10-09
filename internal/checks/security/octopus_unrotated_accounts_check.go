@@ -33,7 +33,7 @@ func (o OctopusUnrotatedAccountsCheck) Id() string {
 	return "OctoLintUnrotatedAccounts"
 }
 
-func (o OctopusUnrotatedAccountsCheck) Execute() (checks.OctopusCheckResult, error) {
+func (o OctopusUnrotatedAccountsCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}
