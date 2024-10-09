@@ -30,18 +30,25 @@ func TestUnhealthyTargets(t *testing.T) {
 		}
 
 		// loop for a bit until the target is unhealthy
-		for i := 0; i < 12; i++ {
-			machines, err := client_wrapper.GetMachines(0, newSpaceClient, newSpaceClient.GetSpaceID())
-
-			if err != nil {
+		for i := 0; i < 24; i++ {
+			if unhealthy, err := checkMachinesUnhealthy(newSpaceClient); err != nil {
 				return err
-			}
-
-			if len(machines) > 0 && machines[0].HealthStatus != "Healthy" && machines[0].HealthStatus != "Unknown" {
-				break
+			} else {
+				if unhealthy {
+					break
+				}
 			}
 
 			time.Sleep(time.Second * 10)
+		}
+
+		// A final sanity check to make sure the machine is actually unhealthy
+		if unhealthy, err := checkMachinesUnhealthy(newSpaceClient); err != nil {
+			return err
+		} else {
+			if unhealthy {
+				return errors.New("machine was never unhealthy")
+			}
 		}
 
 		check := NewOctopusUnhealthyTargetCheck(newSpaceClient, &config.OctolintConfig{}, checks.OctopusClientPermissiveErrorHandler{})
@@ -59,4 +66,18 @@ func TestUnhealthyTargets(t *testing.T) {
 
 		return nil
 	})
+}
+
+func checkMachinesUnhealthy(newSpaceClient *client.Client) (bool, error) {
+	machines, err := client_wrapper.GetMachines(0, newSpaceClient, newSpaceClient.GetSpaceID())
+
+	if err != nil {
+		return false, err
+	}
+
+	if len(machines) > 0 && machines[0].HealthStatus != "Healthy" && machines[0].HealthStatus != "Unknown" {
+		return true, nil
+	}
+
+	return false, nil
 }
