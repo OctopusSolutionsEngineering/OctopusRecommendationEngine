@@ -1,6 +1,7 @@
 package organization
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
@@ -8,7 +9,9 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
+	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"strings"
 	"time"
 )
@@ -48,41 +51,54 @@ func (o OctopusUnhealthyTargetCheck) Execute(concurrency int) (checks.OctopusChe
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
 	}
 
-	unhealthyMachines := []string{}
+	g, _ := errgroup.WithContext(context.Background())
+	g.SetLimit(concurrency)
+
+	unhealthyMachines := threadsafe.NewSlice[string]()
+	goroutineErrors := threadsafe.NewSlice[error]()
+
 	for i, m := range allMachines {
-		zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(allMachines))*100) + "% complete")
+		i := i
+		m := m
 
-		wasEverHealthy := true
-		if m.HealthStatus == "Unhealthy" {
-			wasEverHealthy = false
+		g.Go(func() error {
 
-			targetEvents, err := o.client.Events.Get(events.EventsQuery{
-				Regarding: m.ID,
-			})
+			zap.L().Debug(o.Id() + " " + fmt.Sprintf("%.2f", float32(i+1)/float32(len(allMachines))*100) + "% complete")
 
-			if err != nil {
-				if !o.errorHandler.ShouldContinue(err) {
-					return nil, err
+			wasEverHealthy := true
+			if m.HealthStatus == "Unhealthy" {
+				wasEverHealthy = false
+
+				targetEvents, err := o.client.Events.Get(events.EventsQuery{
+					Regarding: m.ID,
+				})
+
+				if err != nil {
+					if !o.errorHandler.ShouldContinue(err) {
+						goroutineErrors.Append(err)
+					}
+					return nil
 				}
-				continue
+
+				for _, e := range targetEvents.Items {
+					if e.Category == "MachineHealthy" && time.Now().Sub(e.Occurred) < maxHealthCheckTime {
+						wasEverHealthy = true
+						break
+					}
+				}
 			}
 
-			for _, e := range targetEvents.Items {
-				if e.Category == "MachineHealthy" && time.Now().Sub(e.Occurred) < maxHealthCheckTime {
-					wasEverHealthy = true
-					break
-				}
+			if !wasEverHealthy {
+				unhealthyMachines.Append(m.Name)
 			}
-		}
 
-		if !wasEverHealthy {
-			unhealthyMachines = append(unhealthyMachines, m.Name)
-		}
+			return nil
+		})
 	}
 
-	if len(unhealthyMachines) > 0 {
+	if unhealthyMachines.Length() > 0 {
 		return checks.NewOctopusCheckResultImpl(
-			"The following targets have not been healthy in the last 30 days:\n"+strings.Join(unhealthyMachines, "\n"),
+			"The following targets have not been healthy in the last 30 days:\n"+strings.Join(unhealthyMachines.Values(), "\n"),
 			o.Id(),
 			"",
 			checks.Warning,
