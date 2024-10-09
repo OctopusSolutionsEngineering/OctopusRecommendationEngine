@@ -41,11 +41,11 @@ func NewOctopusDuplicatedVariablesCheck(client *client.Client, config *config.Oc
 	return OctopusDuplicatedVariablesCheck{config: config, client: client, errorHandler: errorHandler}
 }
 
-func (o OctopusDuplicatedVariablesCheck) Id() string {
+func (o *OctopusDuplicatedVariablesCheck) Id() string {
 	return OctoLintDuplicatedVariables
 }
 
-func (o OctopusDuplicatedVariablesCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
+func (o *OctopusDuplicatedVariablesCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}
@@ -164,7 +164,7 @@ OuterLoop:
 		checks.Organization), nil
 }
 
-func (o OctopusDuplicatedVariablesCheck) shouldIgnoreVariable(variable *variables.Variable) bool {
+func (o *OctopusDuplicatedVariablesCheck) shouldIgnoreVariable(variable *variables.Variable) bool {
 	_, err := strconv.Atoi(variable.Value)
 	return variable.Value == "" ||
 		variable.Type != "String" ||

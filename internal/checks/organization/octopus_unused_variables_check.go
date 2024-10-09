@@ -38,11 +38,11 @@ func NewOctopusUnusedVariablesCheck(client *client.Client, config *config.Octoli
 	return OctopusUnusedVariablesCheck{config: config, client: client, errorHandler: errorHandler}
 }
 
-func (o OctopusUnusedVariablesCheck) Id() string {
+func (o *OctopusUnusedVariablesCheck) Id() string {
 	return OctoLintUnusedVariables
 }
 
-func (o OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
+func (o *OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}
@@ -153,7 +153,7 @@ func (o OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusChe
 		checks.Organization), nil
 }
 
-func (o OctopusUnusedVariablesCheck) getDeploymentSteps(p *projects2.Project) ([]*deployments.DeploymentStep, error) {
+func (o *OctopusUnusedVariablesCheck) getDeploymentSteps(p *projects2.Project) ([]*deployments.DeploymentStep, error) {
 	deploymentProcesses := []*deployments.DeploymentStep{}
 	deploymentProcess, err := o.client.DeploymentProcesses.GetByID(p.DeploymentProcessID)
 
@@ -197,7 +197,7 @@ func (o OctopusUnusedVariablesCheck) getDeploymentSteps(p *projects2.Project) ([
 
 // naiveStepVariableScan does a simple text search for the variable in a steps properties. This does lead to false positives as simple variables names, like "a",
 // will almost certainly appear in a step property text without necessarily being referenced as a variable.
-func (o OctopusUnusedVariablesCheck) naiveStepVariableScan(deploymentSteps []*deployments.DeploymentStep, variable *variables.Variable) bool {
+func (o *OctopusUnusedVariablesCheck) naiveStepVariableScan(deploymentSteps []*deployments.DeploymentStep, variable *variables.Variable) bool {
 	if deploymentSteps != nil {
 		for _, s := range deploymentSteps {
 			for _, a := range s.Actions {
@@ -221,7 +221,7 @@ func (o OctopusUnusedVariablesCheck) naiveStepVariableScan(deploymentSteps []*de
 }
 
 // naiveVariableSetVariableScan does a simple text search for the variable in the value of other variables
-func (o OctopusUnusedVariablesCheck) naiveVariableSetVariableScan(variables variables.VariableSet, variable *variables.Variable) bool {
+func (o *OctopusUnusedVariablesCheck) naiveVariableSetVariableScan(variables variables.VariableSet, variable *variables.Variable) bool {
 	for _, v := range variables.Variables {
 		if strings.Index(v.Value, variable.Name) != -1 {
 			return true
