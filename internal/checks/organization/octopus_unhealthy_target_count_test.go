@@ -3,6 +3,7 @@ package organization
 import (
 	"errors"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
+	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/tasks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
@@ -29,6 +30,12 @@ func TestUnhealthyTargets(t *testing.T) {
 			return err
 		}
 
+		err = startHealthCheck(newSpaceClient)
+
+		if err != nil {
+			return err
+		}
+
 		// loop for a bit until the target is unhealthy
 		for i := 0; i < 24; i++ {
 			if unhealthy, err := checkMachinesUnhealthy(newSpaceClient); err != nil {
@@ -46,7 +53,7 @@ func TestUnhealthyTargets(t *testing.T) {
 		if unhealthy, err := checkMachinesUnhealthy(newSpaceClient); err != nil {
 			return err
 		} else {
-			if unhealthy {
+			if !unhealthy {
 				return errors.New("machine was never unhealthy")
 			}
 		}
@@ -66,6 +73,36 @@ func TestUnhealthyTargets(t *testing.T) {
 
 		return nil
 	})
+}
+
+func startHealthCheck(newSpaceClient *client.Client) error {
+	machines, err := client_wrapper.GetMachines(0, newSpaceClient, newSpaceClient.GetSpaceID())
+
+	if err != nil {
+		return err
+	}
+
+	for _, machine := range machines {
+
+		task := tasks.NewTask()
+		task.Name = "Health"
+		task.SpaceID = newSpaceClient.GetSpaceID()
+		task.Description = machine.Name
+		task.Arguments = map[string]any{
+			"Timeout":        "00:05:00",
+			"MachineTimeout": "00:05:00",
+			"EnvironmentId":  machine.EnvironmentIDs[0],
+			"MachineIds":     []string{machine.ID},
+		}
+
+		_, err := newSpaceClient.Tasks.Add(task)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func checkMachinesUnhealthy(newSpaceClient *client.Client) (bool, error) {
