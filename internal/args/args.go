@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"fmt"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/naming"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/organization"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/performance"
@@ -22,6 +23,8 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 	flags.SetOutput(&buf)
 
 	octolintConfig := config.OctolintConfig{}
+
+	flags.BoolVar(&octolintConfig.Help, "help", false, "Print usage")
 
 	flags.StringVar(&octolintConfig.Url, "url", "", "The Octopus URL e.g. https://myinstance.octopus.app")
 	flags.StringVar(&octolintConfig.Space, "space", "", "The Octopus space name or ID")
@@ -72,6 +75,13 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 	flags.Var(&octolintConfig.ExcludeProjectsExcept, "excludeProjectsExcept", "All projects except those defined with excludeProjectsExcept are scanned.")
 
 	err := flags.Parse(args)
+
+	if octolintConfig.Help {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flags.SetOutput(os.Stdout)
+		flags.PrintDefaults()
+		os.Exit(0)
+	}
 
 	if err != nil {
 		return nil, err

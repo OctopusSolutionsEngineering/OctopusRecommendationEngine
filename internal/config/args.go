@@ -5,6 +5,7 @@ import (
 )
 
 type OctolintConfig struct {
+	Help          bool
 	Url           string
 	Space         string
 	ApiKey        string
