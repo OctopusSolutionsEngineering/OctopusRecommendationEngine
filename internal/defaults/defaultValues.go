@@ -15,6 +15,7 @@ const MaxProjectStepsProjects = 100
 const MaxExclusiveEnvironmentsProjects = 100
 const MaxEmptyProjectCheckProjects = 100
 const MaxUnusedProjects = 100
+const MaxUnusedTenants = 100
 const MaxUnusedTargets = 100
 const MaxUnhealthyTargets = 100
 const MaxInvalidRoleTargets = 100

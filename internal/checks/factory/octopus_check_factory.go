@@ -58,6 +58,7 @@ func (o OctopusCheckFactory) BuildAllChecks(config *config.OctolintConfig) ([]ch
 		organization.NewOctopusProjectGroupsWithExclusiveEnvironmentsCheck(o.client, config, o.errorHandler),
 		organization.NewOctopusUnhealthyTargetCheck(o.client, config, o.errorHandler),
 		organization.NewOctopusUnusedProjectsCheck(o.client, config, o.errorHandler),
+		organization.NewOctopusUnusedTenantsCheck(o.client, config, o.errorHandler),
 		performance.NewOctopusDeploymentQueuedTimeCheck(o.client, config, o.url, o.space, o.errorHandler),
 		naming.NewOctopusProjectContainerImageRegex(o.client, config, o.errorHandler),
 		naming.NewOctopusInvalidVariableNameCheck(o.client, config, o.errorHandler),
