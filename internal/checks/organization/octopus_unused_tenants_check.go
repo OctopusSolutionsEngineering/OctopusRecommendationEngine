@@ -71,7 +71,7 @@ func (o OctopusUnusedTenantsCheck) Execute(concurrency int) (checks.OctopusCheck
 				return nil
 			}
 
-			projectHasTask := false
+			tenantHasTask := false
 
 			tasks, err := o.client.Tasks.Get(tasks.TasksQuery{
 				Tenant: tenant.ID,
@@ -86,12 +86,12 @@ func (o OctopusUnusedTenantsCheck) Execute(concurrency int) (checks.OctopusCheck
 
 			for _, task := range tasks.Items {
 				if task.StartTime != nil && task.StartTime.After(time.Now().Add(-time.Hour*24*time.Duration(o.config.MaxDaysSinceLastTask))) {
-					projectHasTask = true
+					tenantHasTask = true
 					break
 				}
 			}
 
-			if !projectHasTask {
+			if !tenantHasTask {
 				unusedTenants.Append(tenant.Name)
 			}
 
