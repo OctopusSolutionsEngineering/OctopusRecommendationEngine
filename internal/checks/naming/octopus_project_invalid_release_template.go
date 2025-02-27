@@ -3,6 +3,9 @@ package naming
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/core"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/deployments"
@@ -10,13 +13,11 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"go.uber.org/zap"
-	"regexp"
-	"strings"
 )
 
 const OctoLintProjectReleaseTemplate = "OctoLintProjectReleaseTemplate"
 
-// OctopusProjectReleaseTemplateRegex checks to see if any project has too many steps.
+// OctopusProjectReleaseTemplateRegex checks to see if any project has a [release versioning](https://octopus.com/docs/releases/release-versioning) template set incorrectly, according to a specified regular expression.
 type OctopusProjectReleaseTemplateRegex struct {
 	client       *client.Client
 	errorHandler checks.OctopusClientErrorHandler

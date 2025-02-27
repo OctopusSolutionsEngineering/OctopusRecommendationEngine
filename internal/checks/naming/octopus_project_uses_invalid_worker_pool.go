@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/core"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/deployments"
@@ -15,13 +18,11 @@ import (
 	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-	"regexp"
-	"strings"
 )
 
 const OctoLintProjectWorkerPool = "OctoLintProjectWorkerPool"
 
-// OctopusProjectWorkerPoolRegex checks to see if any project has too many steps.
+// OctopusProjectWorkerPoolRegex checks to see if any project has steps in the deployment process where a worker pool is referenced that is invalid, according to a specified regular expression.
 type OctopusProjectWorkerPoolRegex struct {
 	client       *client.Client
 	errorHandler checks.OctopusClientErrorHandler
