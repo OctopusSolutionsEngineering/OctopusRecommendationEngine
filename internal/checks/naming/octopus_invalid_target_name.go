@@ -3,18 +3,19 @@ package naming
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"go.uber.org/zap"
-	"regexp"
-	"strings"
 )
 
 const OctoLintInvalidTargetNames = "OctoLintInvalidTargetNames"
 
-// OctopusInvalidTargetName find targets that have not been healthy in the last 30 days.
+// OctopusInvalidTargetName checks to see if any targets are named incorrectly, according to a specified regular expression.
 type OctopusInvalidTargetName struct {
 	client       *client.Client
 	errorHandler checks.OctopusClientErrorHandler

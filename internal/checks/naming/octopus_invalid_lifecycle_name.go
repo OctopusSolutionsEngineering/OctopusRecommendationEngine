@@ -3,17 +3,18 @@ package naming
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"go.uber.org/zap"
-	"regexp"
-	"strings"
 )
 
 const OctoLintInvalidLifecycleNames = "OctoLintInvalidLifecycleNames"
 
-// OctopusInvalidLifecycleName find targets that have not been healthy in the last 30 days.
+// OctopusInvalidLifecycleName checks if any Lifecycle that is named incorrectly, according to a specified regular expression.
 type OctopusInvalidLifecycleName struct {
 	client       *client.Client
 	errorHandler checks.OctopusClientErrorHandler
