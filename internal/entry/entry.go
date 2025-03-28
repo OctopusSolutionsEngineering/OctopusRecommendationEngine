@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/resources"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/spaces"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/factory"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/executor"
-	"github.com/OctopusSolutionsEngineering/OctopusTerraformTestFramework/octoclient"
 	"github.com/briandowns/spinner"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -51,7 +51,7 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 		return nil, errors.New("The URL \"" + octolintConfig.Url + "\" is not valid")
 	}
 
-	if octolintConfig.ApiKey == "" {
+	if octolintConfig.ApiKey == "" && octolintConfig.AccessToken == "" {
 		return nil, errors.New("You must specify the API key with the -apiKey argument")
 	}
 
@@ -60,7 +60,7 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 	}
 
 	if !strings.HasPrefix(octolintConfig.Space, "Spaces-") {
-		spaceId, err := lookupSpaceAsName(octolintConfig.Url, octolintConfig.Space, octolintConfig.ApiKey)
+		spaceId, err := lookupSpaceAsName(octolintConfig.Url, octolintConfig.Space, octolintConfig.ApiKey, octolintConfig.AccessToken)
 
 		if err != nil {
 			return nil, errors.New("Failed to create the Octopus client_wrapper. Check that the url, api key, and space are correct.\nThe error was: " + err.Error())
@@ -69,7 +69,7 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 		octolintConfig.Space = spaceId
 	}
 
-	client, err := octoclient.CreateClient(octolintConfig.Url, octolintConfig.Space, octolintConfig.ApiKey)
+	client, err := createClient(octolintConfig.Url, octolintConfig.Space, octolintConfig.ApiKey, octolintConfig.AccessToken)
 
 	if err != nil {
 		return nil, errors.New("Failed to create the Octopus client_wrapper. Check that the url, api key, and space are correct.\nThe error was: " + err.Error())
@@ -109,12 +109,42 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 	return results, nil
 }
 
+func createClient(octopusUrl string, spaceId string, apiKey string, accessToken string) (*client.Client, error) {
+	url, err := url.Parse(octopusUrl)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if apiKey != "" {
+		return createClientApiKey(url, spaceId, apiKey)
+	}
+
+	return createClientAccessToken(url, spaceId, accessToken)
+}
+
+func createClientApiKey(apiURL *url.URL, spaceId string, apiKey string) (*client.Client, error) {
+	apiKeyCredential, err := client.NewApiKey(apiKey)
+	if err != nil {
+		return nil, err
+	}
+	return client.NewClientWithCredentials(nil, apiURL, apiKeyCredential, spaceId, "")
+}
+
+func createClientAccessToken(apiURL *url.URL, spaceId string, accessToken string) (*client.Client, error) {
+	accessTokenCredential, err := client.NewAccessToken(accessToken)
+	if err != nil {
+		return nil, err
+	}
+	return client.NewClientWithCredentials(nil, apiURL, accessTokenCredential, spaceId, "")
+}
+
 func ErrorExit(message string) {
 	fmt.Println(message)
 	os.Exit(1)
 }
 
-func lookupSpaceAsName(octopusUrl string, spaceName string, apiKey string) (string, error) {
+func lookupSpaceAsName(octopusUrl string, spaceName string, apiKey string, accessToken string) (string, error) {
 	if len(strings.TrimSpace(spaceName)) == 0 {
 		return "", errors.New("space can not be empty")
 	}
@@ -129,6 +159,8 @@ func lookupSpaceAsName(octopusUrl string, spaceName string, apiKey string) (stri
 
 	if apiKey != "" {
 		req.Header.Set("X-Octopus-ApiKey", apiKey)
+	} else if accessToken != "" {
+		req.Header.Set("Authorization", "Bearer "+accessToken)
 	}
 
 	res, err := http.DefaultClient.Do(req)

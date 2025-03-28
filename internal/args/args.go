@@ -29,6 +29,7 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 	flags.StringVar(&octolintConfig.Url, "url", "", "The Octopus URL e.g. https://myinstance.octopus.app")
 	flags.StringVar(&octolintConfig.Space, "space", "", "The Octopus space name or ID")
 	flags.StringVar(&octolintConfig.ApiKey, "apiKey", "", "The Octopus api key")
+	flags.StringVar(&octolintConfig.AccessToken, "accessToken", "", "The Octopus access token")
 	flags.StringVar(&octolintConfig.SkipTests, "skipTests", "", "A comma separated list of tests to skip")
 	flags.StringVar(&octolintConfig.OnlyTests, "onlyTests", "", "A comma separated list of tests to include")
 	flags.StringVar(&octolintConfig.ConfigFile, "configFile", "octolint", "The name of the configuration file to use. Do not include the extension. Defaults to octolint")
@@ -98,7 +99,7 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 		octolintConfig.Url = os.Getenv("OCTOPUS_CLI_SERVER")
 	}
 
-	if octolintConfig.ApiKey == "" {
+	if octolintConfig.ApiKey == "" && octolintConfig.AccessToken == "" {
 		octolintConfig.ApiKey = os.Getenv("OCTOPUS_CLI_API_KEY")
 	}
 

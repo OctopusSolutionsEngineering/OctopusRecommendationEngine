@@ -9,6 +9,7 @@ type OctolintConfig struct {
 	Url           string
 	Space         string
 	ApiKey        string
+	AccessToken   string
 	SkipTests     string
 	OnlyTests     string
 	VerboseErrors bool

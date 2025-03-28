@@ -29,6 +29,7 @@ type AzureFunctionRequest struct {
 func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 	// Allow the more sensitive values to be passed as headers
 	apiKey := r.Header.Get("X-Octopus-ApiKey")
+	accessToken := r.Header.Get("X-Octopus-AccessToken")
 	url := r.Header.Get("X-Octopus-Url")
 
 	respBytes, err := io.ReadAll(r.Body)
@@ -81,6 +82,8 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 
 	if apiKey != "" {
 		commandLineArgs = append(commandLineArgs, "-apiKey", apiKey)
+	} else if accessToken != "" {
+		commandLineArgs = append(commandLineArgs, "-accessToken", accessToken)
 	}
 
 	if url != "" {
