@@ -130,7 +130,7 @@ func createClient(octolintConfig *config.OctolintConfig) (*client.Client, error)
 
 func getHost(octolintConfig *config.OctolintConfig) (*url.URL, error) {
 	if octolintConfig.UseRedirector {
-		return url.Parse(octolintConfig.RedirectorHost)
+		return url.Parse("https://" + octolintConfig.RedirectorHost)
 	}
 
 	return url.Parse(octolintConfig.Url)
