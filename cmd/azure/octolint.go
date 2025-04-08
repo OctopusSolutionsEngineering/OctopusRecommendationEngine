@@ -10,8 +10,11 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 type AzureFunctionRequestDataReq struct {
@@ -31,6 +34,18 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 	apiKey := r.Header.Get("X-Octopus-ApiKey")
 	accessToken := r.Header.Get("X-Octopus-AccessToken")
 	url := r.Header.Get("X-Octopus-Url")
+	redirectorRedirections := r.Header.Get("X_REDIRECTION_REDIRECTIONS")
+	redirectorApiKey := r.Header.Get("X_REDIRECTION_API_KEY")
+	redirectorServiceApiKey, _ := os.LookupEnv("REDIRECTION_SERVICE_API_KEY")
+	redirectorHost, _ := os.LookupEnv("REDIRECTION_HOST")
+	disableRedirector, _ := os.LookupEnv("DISABLE_REDIRECTION")
+
+	enableRedirector, err := useRedirector(url, disableRedirector, redirectorServiceApiKey, redirectorHost, redirectorRedirections, redirectorApiKey)
+
+	if err != nil {
+		handleError(err, w)
+		return
+	}
 
 	respBytes, err := io.ReadAll(r.Body)
 
@@ -90,6 +105,14 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 		commandLineArgs = append(commandLineArgs, "-url", url)
 	}
 
+	if enableRedirector {
+		commandLineArgs = append(commandLineArgs, "-useRedirector")
+		commandLineArgs = append(commandLineArgs, "-redirectorHost", redirectorHost)
+		commandLineArgs = append(commandLineArgs, "-redirectorServiceApiKey", redirectorServiceApiKey)
+		commandLineArgs = append(commandLineArgs, "-redirecrtorApiKey", redirectorApiKey)
+		commandLineArgs = append(commandLineArgs, "-redirectorRedirections", redirectorRedirections)
+	}
+
 	webArgs, err := args.ParseArgs(commandLineArgs)
 
 	if err != nil {
@@ -119,6 +142,31 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func useRedirector(octopusUrl string, disableRedirector string, redirectorServiceApiKey string, redirectorHost string, redirections string, redirectorApiKey string) (bool, error) {
+	parsedUrl, err := url.Parse(octopusUrl)
+
+	if err != nil {
+		return false, err
+	}
+
+	disableRedirectorParsed, err := strconv.ParseBool(disableRedirector)
+
+	if err != nil {
+		disableRedirectorParsed = false
+	}
+
+	return !disableRedirectorParsed && redirectorServiceApiKey != "" && redirectorHost != "" &&
+		(!hostIsCloudOrLocal(parsedUrl.Hostname()) ||
+			(redirections != "" && redirectorApiKey != "")), nil
+}
+
+func hostIsCloudOrLocal(host string) bool {
+	return strings.HasSuffix(host, ".octopus.app") ||
+		strings.HasSuffix(host, ".testoctopus.com") ||
+		host == "localhost" ||
+		host == "127.0.0.1"
+}
+
 // sanitizeConfig removes sensitive information from the config so it is not
 // persisted to the disk.
 func sanitizeConfig(rawConfig []byte) ([]byte, error) {
@@ -132,6 +180,11 @@ func sanitizeConfig(rawConfig []byte) ([]byte, error) {
 	}
 	delete(config, "apiKey")
 	delete(config, "url")
+	delete(config, "redirectorServiceApiKey")
+	delete(config, "redirecrtorApiKey")
+	delete(config, "redirectorHost")
+	delete(config, "useRedirector")
+	delete(config, "redirectorRedirections")
 	return json.Marshal(config)
 }
 

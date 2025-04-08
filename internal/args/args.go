@@ -76,6 +76,12 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 	flags.Var(&octolintConfig.ExcludeProjectsRegex, "excludeProjectsRegex", "Exclude a project from being scanned.")
 	flags.Var(&octolintConfig.ExcludeProjectsExcept, "excludeProjectsExcept", "All projects except those defined with excludeProjectsExcept are scanned.")
 
+	flags.BoolVar(&octolintConfig.UseRedirector, "useRedirector", false, "Set to true to access the Octopus instance via the redirector")
+	flags.StringVar(&octolintConfig.RedirectorHost, "redirectorHost", "", "The hostname of the redirector service")
+	flags.StringVar(&octolintConfig.RedirectorServiceApiKey, "redirectorServiceApiKey", "", "The service api key of the redirector service")
+	flags.StringVar(&octolintConfig.RedirecrtorApiKey, "redirecrtorApiKey", "", "The user api key of the redirector service")
+	flags.StringVar(&octolintConfig.RedirectorRedirections, "redirectorRedirections", "", "The redirection rules for the redirector service")
+
 	err := flags.Parse(args)
 
 	if octolintConfig.Help {

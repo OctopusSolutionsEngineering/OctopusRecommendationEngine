@@ -19,6 +19,13 @@ type OctolintConfig struct {
 	ConfigPath    string
 	Verbose       bool
 
+	// redirector settings
+	UseRedirector           bool
+	RedirectorHost          string
+	RedirectorServiceApiKey string
+	RedirecrtorApiKey       string
+	RedirectorRedirections  string
+
 	// Global filters for resources
 	ExcludeProjects       StringSliceArgs
 	ExcludeProjectsExcept StringSliceArgs

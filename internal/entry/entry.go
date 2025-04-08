@@ -69,14 +69,18 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 		octolintConfig.Space = spaceId
 	}
 
-	client, err := createClient(octolintConfig.Url, octolintConfig.Space, octolintConfig.ApiKey, octolintConfig.AccessToken)
+	client, err := createClient(octolintConfig)
 
 	if err != nil {
 		return nil, errors.New("Failed to create the Octopus client_wrapper. Check that the url, api key, and space are correct.\nThe error was: " + err.Error())
 	}
 
-	factory := factory.NewOctopusCheckFactory(client, octolintConfig.Url, octolintConfig.Space)
-	checkCollection, err := factory.BuildAllChecks(octolintConfig)
+	if err := setClientHeaders(client, octolintConfig); err != nil {
+		return nil, err
+	}
+
+	checkFactory := factory.NewOctopusCheckFactory(client, octolintConfig.Url, octolintConfig.Space)
+	checkCollection, err := checkFactory.BuildAllChecks(octolintConfig)
 
 	if err != nil {
 		ErrorExit("Failed to create the checks")
@@ -89,8 +93,8 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 		fmt.Println("Report took " + fmt.Sprint((endTime-startTime)/1000) + " seconds")
 	}()
 
-	executor := executor.NewOctopusCheckExecutor()
-	results, err := executor.ExecuteChecks(checkCollection, func(check checks.OctopusCheck, err error) error {
+	checkExecutor := executor.NewOctopusCheckExecutor()
+	results, err := checkExecutor.ExecuteChecks(checkCollection, func(check checks.OctopusCheck, err error) error {
 		fmt.Fprintf(os.Stderr, "Failed to execute check "+check.Id())
 		if octolintConfig.VerboseErrors {
 			fmt.Println("##octopus[stdout-verbose]")
@@ -109,18 +113,45 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 	return results, nil
 }
 
-func createClient(octopusUrl string, spaceId string, apiKey string, accessToken string) (*client.Client, error) {
-	url, err := url.Parse(octopusUrl)
+func createClient(octolintConfig *config.OctolintConfig) (*client.Client, error) {
+
+	parsedUrl, err := getHost(octolintConfig)
 
 	if err != nil {
 		return nil, err
 	}
 
-	if apiKey != "" {
-		return createClientApiKey(url, spaceId, apiKey)
+	if octolintConfig.ApiKey != "" {
+		return createClientApiKey(parsedUrl, octolintConfig.Space, octolintConfig.ApiKey)
 	}
 
-	return createClientAccessToken(url, spaceId, accessToken)
+	return createClientAccessToken(parsedUrl, octolintConfig.Space, octolintConfig.AccessToken)
+}
+
+func getHost(octolintConfig *config.OctolintConfig) (*url.URL, error) {
+	if octolintConfig.UseRedirector {
+		return url.Parse(octolintConfig.RedirectorHost)
+	}
+
+	return url.Parse(octolintConfig.Url)
+}
+
+func setClientHeaders(client *client.Client, octolintConfig *config.OctolintConfig) error {
+	if octolintConfig.UseRedirector {
+		parsedUrl, err := url.Parse(octolintConfig.Url)
+
+		if err != nil {
+			return err
+		}
+
+		headers := client.HttpSession().DefaultHeaders
+		headers["X_REDIRECTION_UPSTREAM_HOST"] = parsedUrl.Hostname()
+		headers["X_REDIRECTION_REDIRECTIONS"] = octolintConfig.RedirectorRedirections
+		headers["X_REDIRECTION_API_KEY"] = octolintConfig.RedirecrtorApiKey
+		headers["X_REDIRECTION_SERVICE_API_KEY"] = octolintConfig.RedirectorServiceApiKey
+	}
+
+	return nil
 }
 
 func createClientApiKey(apiURL *url.URL, spaceId string, apiKey string) (*client.Client, error) {
