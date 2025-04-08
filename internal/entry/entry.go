@@ -9,6 +9,7 @@ import (
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/spaces"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/factory"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/client_wrapper"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/executor"
 	"github.com/briandowns/spinner"
@@ -69,14 +70,16 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 		octolintConfig.Space = spaceId
 	}
 
-	client, err := createClient(octolintConfig)
+	httpClient, err := createHttpClient(octolintConfig)
+
+	if err != nil {
+		return nil, errors.New("Failed to create the HTTP client. Check that the url is correct.\nThe error was: " + err.Error())
+	}
+
+	client, err := createClient(httpClient, octolintConfig)
 
 	if err != nil {
 		return nil, errors.New("Failed to create the Octopus client_wrapper. Check that the url, api key, and space are correct.\nThe error was: " + err.Error())
-	}
-
-	if err := setClientHeaders(client, octolintConfig); err != nil {
-		return nil, err
 	}
 
 	checkFactory := factory.NewOctopusCheckFactory(client, octolintConfig.Url, octolintConfig.Space)
@@ -113,7 +116,7 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 	return results, nil
 }
 
-func createClient(octolintConfig *config.OctolintConfig) (*client.Client, error) {
+func createClient(httpClient *http.Client, octolintConfig *config.OctolintConfig) (*client.Client, error) {
 
 	parsedUrl, err := getHost(octolintConfig)
 
@@ -122,10 +125,10 @@ func createClient(octolintConfig *config.OctolintConfig) (*client.Client, error)
 	}
 
 	if octolintConfig.ApiKey != "" {
-		return createClientApiKey(parsedUrl, octolintConfig.Space, octolintConfig.ApiKey)
+		return createClientApiKey(httpClient, parsedUrl, octolintConfig.Space, octolintConfig.ApiKey)
 	}
 
-	return createClientAccessToken(parsedUrl, octolintConfig.Space, octolintConfig.AccessToken)
+	return createClientAccessToken(httpClient, parsedUrl, octolintConfig.Space, octolintConfig.AccessToken)
 }
 
 func getHost(octolintConfig *config.OctolintConfig) (*url.URL, error) {
@@ -136,38 +139,47 @@ func getHost(octolintConfig *config.OctolintConfig) (*url.URL, error) {
 	return url.Parse(octolintConfig.Url)
 }
 
-func setClientHeaders(client *client.Client, octolintConfig *config.OctolintConfig) error {
+func createHttpClient(octolintConfig *config.OctolintConfig) (*http.Client, error) {
 	if octolintConfig.UseRedirector {
 		parsedUrl, err := url.Parse(octolintConfig.Url)
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		headers := client.HttpSession().DefaultHeaders
-		headers["X_REDIRECTION_UPSTREAM_HOST"] = parsedUrl.Hostname()
-		headers["X_REDIRECTION_REDIRECTIONS"] = octolintConfig.RedirectorRedirections
-		headers["X_REDIRECTION_API_KEY"] = octolintConfig.RedirecrtorApiKey
-		headers["X_REDIRECTION_SERVICE_API_KEY"] = octolintConfig.RedirectorServiceApiKey
+		headers := map[string]string{
+			"X_REDIRECTION_UPSTREAM_HOST":   parsedUrl.Hostname(),
+			"X_REDIRECTION_REDIRECTIONS":    octolintConfig.RedirectorRedirections,
+			"X_REDIRECTION_API_KEY":         octolintConfig.RedirecrtorApiKey,
+			"X_REDIRECTION_SERVICE_API_KEY": octolintConfig.RedirectorServiceApiKey,
+		}
+
+		return &http.Client{
+			Transport: &client_wrapper.HeaderRoundTripper{
+				Transport: http.DefaultTransport,
+				Headers:   headers,
+			},
+		}, nil
 	}
 
-	return nil
+	return &http.Client{}, nil
 }
 
-func createClientApiKey(apiURL *url.URL, spaceId string, apiKey string) (*client.Client, error) {
+func createClientApiKey(httpClient *http.Client, apiURL *url.URL, spaceId string, apiKey string) (*client.Client, error) {
 	apiKeyCredential, err := client.NewApiKey(apiKey)
 	if err != nil {
 		return nil, err
 	}
-	return client.NewClientWithCredentials(nil, apiURL, apiKeyCredential, spaceId, "")
+
+	return client.NewClientWithCredentials(httpClient, apiURL, apiKeyCredential, spaceId, "")
 }
 
-func createClientAccessToken(apiURL *url.URL, spaceId string, accessToken string) (*client.Client, error) {
+func createClientAccessToken(httpClient *http.Client, apiURL *url.URL, spaceId string, accessToken string) (*client.Client, error) {
 	accessTokenCredential, err := client.NewAccessToken(accessToken)
 	if err != nil {
 		return nil, err
 	}
-	return client.NewClientWithCredentials(nil, apiURL, accessTokenCredential, spaceId, "")
+	return client.NewClientWithCredentials(httpClient, apiURL, accessTokenCredential, spaceId, "")
 }
 
 func ErrorExit(message string) {
