@@ -233,7 +233,7 @@ jobs:
           CGO_ENABLED: 0               
       # Create macOS azure version zips
       - run: |
-          zip -r octolint_macos_arm64_azure.zip . -x local.settings.json -x octolint_linux_amd64_azure -x octolint_linux_amd64_azure.zip -x octolint_windows_amd64_azure.exe
+          zip -r octolint_macos_arm64_azure.zip . -x local.settings.json -x octolint_linux_amd64_azure -x octolint_linux_amd64_azure.zip -x octolint_windows_amd64_azure.exe -x octolint_macos_amd64_azure 
           zip -r octolint_macos_amd64_azure.zip . -x local.settings.json -x octolint_linux_amd64_azure -x octolint_linux_amd64_azure.zip -x octolint_windows_amd64_azure.exe -x octolint_macos_arm64_azure -x octolint_macos_arm64_azure.zip
         working-directory: functions        
       - id: create_release
