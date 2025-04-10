@@ -216,20 +216,25 @@ jobs:
           cp octolint_linux_amd64_azure.zip octolint_azure.${{ steps.determine_version.outputs.semVer }}.zip
         working-directory: functions    
       # Create azure version for macOS (amd64 and arm64)
-      - run: go build -ldflags="-X 'entry.Version=${{ steps.determine_version.outputs.semVer }}'" -o octolint_macos_amd64_azure cmd/azure/octolint.go
+      - run: go build -ldflags="-X 'entry.Version=${{ steps.determine_version.outputs.semVer }}'" -o functions/octolint_macos_amd64_azure cmd/azure/octolint.go
         env:
           GOOS: darwin
           GOARCH: amd64
           CGO_ENABLED: 0
-      - run: go build -ldflags="-X 'entry.Version=${{ steps.determine_version.outputs.semVer }}'" -o octolint_macos_arm64_azure cmd/azure/octolint.go
+      - run: go build -ldflags="-X 'entry.Version=${{ steps.determine_version.outputs.semVer }}'" -o functions/octolint_macos_arm64_azure cmd/azure/octolint.go
         env:
           GOOS: darwin
           GOARCH: arm64
-          CGO_ENABLED: 0          
+          CGO_ENABLED: 0
+      - run: go build -ldflags="-X 'entry.Version=${{ steps.determine_version.outputs.semVer }}'" -o functions/octolint_windows_amd64_azure.exe cmd/azure/octolint.go
+        env:
+          GOOS: windows
+          GOARCH: amd64
+          CGO_ENABLED: 0               
       # Create macOS azure version zips
       - run: |
-          zip -r octolint_macos_arm64_azure.zip . -x local.settings.json -x octolint_linux_amd64_azure -x octolint_linux_amd64_azure.zip
-          zip -r octolint_macos_amd64_azure.zip . -x local.settings.json -x octolint_linux_amd64_azure -x octolint_linux_amd64_azure.zip -x octolint_macos_arm64_azure -x octolint_macos_arm64_azure.zip
+          zip -r octolint_macos_arm64_azure.zip . -x local.settings.json -x octolint_linux_amd64_azure -x octolint_linux_amd64_azure.zip -x octolint_windows_amd64_azure.exe
+          zip -r octolint_macos_amd64_azure.zip . -x local.settings.json -x octolint_linux_amd64_azure -x octolint_linux_amd64_azure.zip -x octolint_windows_amd64_azure.exe -x octolint_macos_arm64_azure -x octolint_macos_arm64_azure.zip
         working-directory: functions        
       - id: create_release
         uses: "marvinpinto/action-automatic-releases@latest"
@@ -292,7 +297,16 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: functions/octolint_macos_arm64_azure.zip
           asset_name: octolint_macos_arm64_azure.zip
-          asset_content_type: application/octet-stream                    
+          asset_content_type: application/octet-stream
+      - name: Upload windows amd64 Azure Functions Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: functions/octolint_windows_amd64_azure.exe
+          asset_name: octolint_windows_amd64_azure.exe
+          asset_content_type: application/octet-stream                              
       - name: Push packages to Octopus Deploy
         if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
         uses: OctopusDeploy/push-package-action@v3
