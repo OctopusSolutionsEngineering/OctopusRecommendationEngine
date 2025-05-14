@@ -8,10 +8,7 @@ This CLI tool scans an Octopus instance to find potential issues in the configur
 
 ## Support
 
-Feel free to report
-an [issue](https://github.com/OctopusSalesEngineering/OctopusRecommendationEngine/issues).
-
-This tool is not officially supported by Octopus. Please do not contact the Octopus support channels regarding octolint.
+Contact [Octopus Support](https://octopus.com/support). 
 
 ## Usage
 
