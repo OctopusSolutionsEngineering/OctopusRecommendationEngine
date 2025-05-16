@@ -5,6 +5,7 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/args"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/entry"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/environment"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/reporters"
 	"go.uber.org/zap"
 	"io"
@@ -197,10 +198,7 @@ func handleError(err error, w http.ResponseWriter) {
 }
 
 func main() {
-	listenAddr := ":8080"
-	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
-		listenAddr = ":" + val
-	}
+	listenAddr := ":" + environment.GetPort()
 	http.HandleFunc("/api/octolint", func(writer http.ResponseWriter, request *http.Request) {
 		switch request.Method {
 		case http.MethodPost:
