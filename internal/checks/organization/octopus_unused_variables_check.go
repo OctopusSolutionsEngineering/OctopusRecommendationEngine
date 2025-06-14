@@ -138,7 +138,7 @@ func (o *OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusCh
 		}
 
 		return checks.NewOctopusCheckResultImpl(
-			"The following variables may be unused (note there are edge cases octolint can't detect, so double check these before deleting them): \n"+strings.Join(messages, "\n"),
+			"The following variables may be unused (note there are edge cases that may use these variables that can't be detected, so double check these before deleting them): \n"+strings.Join(messages, "\n"),
 			o.Id(),
 			"",
 			checks.Warning,

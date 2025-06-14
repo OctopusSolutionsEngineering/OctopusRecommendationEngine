@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/deployments"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/newclient"
@@ -17,15 +20,13 @@ import (
 	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-	"regexp"
-	"strings"
 )
 
 var linkOptions = regexp.MustCompile(`\{.*?}`)
 
 const OctoLintInvalidVariableNames = "OctoLintInvalidVariableNames"
 
-// OctopusInvalidVariableNameCheck checks to see if any project variables are unused.
+// OctopusInvalidVariableNameCheck checks to see if any project variables are named incorrectly, according to a specified regular expression.
 type OctopusInvalidVariableNameCheck struct {
 	client       *client.Client
 	errorHandler checks.OctopusClientErrorHandler

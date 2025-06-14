@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"flag"
+	"fmt"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/naming"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/organization"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/performance"
@@ -23,9 +24,12 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 
 	octolintConfig := config.OctolintConfig{}
 
+	flags.BoolVar(&octolintConfig.Help, "help", false, "Print usage")
+
 	flags.StringVar(&octolintConfig.Url, "url", "", "The Octopus URL e.g. https://myinstance.octopus.app")
 	flags.StringVar(&octolintConfig.Space, "space", "", "The Octopus space name or ID")
 	flags.StringVar(&octolintConfig.ApiKey, "apiKey", "", "The Octopus api key")
+	flags.StringVar(&octolintConfig.AccessToken, "accessToken", "", "The Octopus access token")
 	flags.StringVar(&octolintConfig.SkipTests, "skipTests", "", "A comma separated list of tests to skip")
 	flags.StringVar(&octolintConfig.OnlyTests, "onlyTests", "", "A comma separated list of tests to include")
 	flags.StringVar(&octolintConfig.ConfigFile, "configFile", "octolint", "The name of the configuration file to use. Do not include the extension. Defaults to octolint")
@@ -51,6 +55,7 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 	flags.IntVar(&octolintConfig.MaxExclusiveEnvironmentsProjects, "maxExclusiveEnvironmentsProjects", defaults.MaxExclusiveEnvironmentsProjects, "Maximum number of projects to check for exclusive environments for the "+organization.OctoLintProjectGroupsWithExclusiveEnvironments+" check. Set to 0 to report all projects with exclusive environments.")
 	flags.IntVar(&octolintConfig.MaxEmptyProjectCheckProjects, "maxEmptyProjectCheckProjects", defaults.MaxEmptyProjectCheckProjects, "Maximum number of projects to check for no steps for the "+organization.OctoLintEmptyProject+" check. Set to 0 to report all empty projects.")
 	flags.IntVar(&octolintConfig.MaxUnusedProjects, "maxUnusedProjects", defaults.MaxUnusedProjects, "Maximum number of unused projects to check for the "+organization.OctopusUnusedProjectsCheckName+" check. Set to 0 to report all unused projects.")
+	flags.IntVar(&octolintConfig.MaxUnusedTenants, "maxUnusedTenants", defaults.MaxUnusedTenants, "Maximum number of unused tenants to check for the "+organization.OctopusUnusedTenantsCheckName+" check. Set to 0 to report all unused tenants.")
 	flags.IntVar(&octolintConfig.MaxUnusedTargets, "maxUnusedTargets", defaults.MaxUnusedTargets, "Maximum number of unused targets to check for the "+organization.OctoLintUnusedTargets+" check. Set to 0 to report all unused targets.")
 	flags.IntVar(&octolintConfig.MaxUnhealthyTargets, "maxUnhealthyTargets", defaults.MaxUnhealthyTargets, "Maximum number of unhealthy targets to check for the "+organization.OctoLintUnhealthyTargets+" check. Set to 0 to report all unhealthy targets.")
 	flags.IntVar(&octolintConfig.MaxInvalidRoleTargets, "maxInvalidRoleTargets", defaults.MaxInvalidRoleTargets, "Maximum number of targets to check for invalid roles for the "+naming.OctoLintInvalidTargetRoles+" check. Set to 0 to report all targets.")
@@ -71,7 +76,20 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 	flags.Var(&octolintConfig.ExcludeProjectsRegex, "excludeProjectsRegex", "Exclude a project from being scanned.")
 	flags.Var(&octolintConfig.ExcludeProjectsExcept, "excludeProjectsExcept", "All projects except those defined with excludeProjectsExcept are scanned.")
 
+	flags.BoolVar(&octolintConfig.UseRedirector, "useRedirector", false, "Set to true to access the Octopus instance via the redirector")
+	flags.StringVar(&octolintConfig.RedirectorHost, "redirectorHost", "", "The hostname of the redirector service")
+	flags.StringVar(&octolintConfig.RedirectorServiceApiKey, "redirectorServiceApiKey", "", "The service api key of the redirector service")
+	flags.StringVar(&octolintConfig.RedirecrtorApiKey, "redirecrtorApiKey", "", "The user api key of the redirector service")
+	flags.StringVar(&octolintConfig.RedirectorRedirections, "redirectorRedirections", "", "The redirection rules for the redirector service")
+
 	err := flags.Parse(args)
+
+	if octolintConfig.Help {
+		fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+		flags.SetOutput(os.Stdout)
+		flags.PrintDefaults()
+		os.Exit(0)
+	}
 
 	if err != nil {
 		return nil, err
@@ -87,7 +105,7 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 		octolintConfig.Url = os.Getenv("OCTOPUS_CLI_SERVER")
 	}
 
-	if octolintConfig.ApiKey == "" {
+	if octolintConfig.ApiKey == "" && octolintConfig.AccessToken == "" {
 		octolintConfig.ApiKey = os.Getenv("OCTOPUS_CLI_API_KEY")
 	}
 

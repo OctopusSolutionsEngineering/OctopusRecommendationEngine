@@ -5,9 +5,11 @@ import (
 )
 
 type OctolintConfig struct {
+	Help          bool
 	Url           string
 	Space         string
 	ApiKey        string
+	AccessToken   string
 	SkipTests     string
 	OnlyTests     string
 	VerboseErrors bool
@@ -16,6 +18,13 @@ type OctolintConfig struct {
 	ConfigFile    string
 	ConfigPath    string
 	Verbose       bool
+
+	// redirector settings
+	UseRedirector           bool
+	RedirectorHost          string
+	RedirectorServiceApiKey string
+	RedirecrtorApiKey       string
+	RedirectorRedirections  string
 
 	// Global filters for resources
 	ExcludeProjects       StringSliceArgs
@@ -60,6 +69,7 @@ type OctolintConfig struct {
 	MaxProjectStepsProjects                   int
 	MaxUnusedVariablesProjects                int
 	MaxUnusedProjects                         int
+	MaxUnusedTenants                          int
 	MaxDefaultStepNameProjects                int
 	MaxDeploymentsByAdminProjects             int
 	MaxUnusedTargets                          int

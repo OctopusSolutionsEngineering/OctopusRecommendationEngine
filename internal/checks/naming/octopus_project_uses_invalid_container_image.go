@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/core"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/deployments"
@@ -13,13 +16,11 @@ import (
 	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-	"regexp"
-	"strings"
 )
 
 const OctoLintContainerImageName = "OctoLintProjectContainerImageName"
 
-// OctopusProjectContainerImageRegex checks to see if any project has too many steps.
+// OctopusProjectContainerImageRegex checks to see if any project has steps with invalid container images specified.
 type OctopusProjectContainerImageRegex struct {
 	client       *client.Client
 	errorHandler checks.OctopusClientErrorHandler
