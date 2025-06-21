@@ -157,7 +157,7 @@ OuterLoop:
 	}
 
 	return checks.NewOctopusCheckResultImpl(
-		"There are no duplicated variables",
+		"There are no duplicated variables in "+fmt.Sprint(len(projects))+" projects",
 		o.Id(),
 		"",
 		checks.Ok,
