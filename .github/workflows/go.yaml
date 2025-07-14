@@ -214,7 +214,8 @@ jobs:
       - run: |
           zip -r octolint_linux_amd64_azure.zip . -x local.settings.json
           cp octolint_linux_amd64_azure.zip octolint_azure.${{ steps.determine_version.outputs.semVer }}.zip
-        working-directory: functions    
+          cp octolint_linux_amd64_azure.zip octolint_azure.${{ steps.determine_version.outputs.semVer }}+${{ steps.determine_version.outputs.ShortSha }}.${{ github.run_number }}.${{ github.run_attempt }}.zip
+        working-directory: functions
       # Create azure version for macOS (amd64 and arm64)
       - run: go build -ldflags="-X 'entry.Version=${{ steps.determine_version.outputs.semVer }}'" -o functions/octolint_macos_amd64_azure cmd/azure/octolint.go
         env:
