@@ -213,6 +213,11 @@ func (o *OctopusUnusedVariablesCheck) naiveStepVariableScan(deploymentSteps []*d
 						return true
 					}
 				}
+
+				// Worker pools can use variables
+				if a.WorkerPoolVariable == variable.Name {
+					return true
+				}
 			}
 		}
 	}
