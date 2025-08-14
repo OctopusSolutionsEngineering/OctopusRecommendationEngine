@@ -46,7 +46,7 @@ func NewOctopusSha1CertificatesCheck(client *client.Client, config *config.Octol
 }
 
 func (o OctopusSha1CertificatesCheck) Id() string {
-	return OctopusSha1Certificates
+	return OctoLintSha1Certificates
 }
 
 // fetchServerCertificate gets the server certificate object and returns it.
