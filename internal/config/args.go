@@ -80,6 +80,7 @@ type OctolintConfig struct {
 	MaxInvalidNameTargets                     int
 	MaxInsecureK8sTargets                     int
 	MaxDeploymentTasks                        int
+	MaxSha1CertificatesMachines               int
 }
 
 type StringSliceArgs []string
