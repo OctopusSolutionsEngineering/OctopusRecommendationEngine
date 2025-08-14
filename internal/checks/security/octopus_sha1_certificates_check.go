@@ -21,8 +21,8 @@ const (
 	sha1Alg                  = "sha1RSA"
 )
 
-// OctoLintSha1CertificatesCheck checks to see if any targets, workers or the server itself is using a sha1 certificate
-type OctoLintSha1CertificatesCheck struct {
+// OctopusSha1CertificatesCheck checks to see if any targets, workers or the server itself is using a sha1 certificate
+type OctopusSha1CertificatesCheck struct {
 	client       *client.Client
 	errorHandler checks.OctopusClientErrorHandler
 	config       *config.OctolintConfig
@@ -41,12 +41,12 @@ type ServerCertificate struct {
 	Links              map[string]string `json:"Links"`
 }
 
-func NewOctoLintSha1CertificatesCheck(client *client.Client, config *config.OctolintConfig, errorHandler checks.OctopusClientErrorHandler) OctoLintSha1CertificatesCheck {
-	return OctoLintSha1CertificatesCheck{config: config, client: client, errorHandler: errorHandler}
+func NewOctopusSha1CertificatesCheck(client *client.Client, config *config.OctolintConfig, errorHandler checks.OctopusClientErrorHandler) OctopusSha1CertificatesCheck {
+	return OctopusSha1CertificatesCheck{config: config, client: client, errorHandler: errorHandler}
 }
 
-func (o OctoLintSha1CertificatesCheck) Id() string {
-	return OctoLintSha1Certificates
+func (o OctopusSha1CertificatesCheck) Id() string {
+	return OctopusSha1Certificates
 }
 
 // fetchServerCertificate gets the server certificate object and returns it.
@@ -113,7 +113,7 @@ func addSha1FromMachines[T any](
 	}
 }
 
-func (o OctoLintSha1CertificatesCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
+func (o OctopusSha1CertificatesCheck) Execute(concurrency int) (checks.OctopusCheckResult, error) {
 	if o.client == nil {
 		return nil, errors.New("octoclient is nil")
 	}

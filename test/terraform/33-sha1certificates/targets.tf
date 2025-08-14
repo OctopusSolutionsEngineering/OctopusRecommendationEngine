@@ -25,8 +25,8 @@ resource "octopusdeploy_listening_tentacle_deployment_target" "target_example" {
 
 resource "octopusdeploy_listening_tentacle_worker" "worker_example" {
   name         = "sha1 listening_worker"
-  machine_policy_id = "${data.octopusdeploy_machine_policies.default_machine_policy.machine_policies[0].id} "
-  worker_pool_ids = [ "${data.octopusdeploy_worker_pools.workerpool_default.ids[0]}" ]
+  machine_policy_id = "${data.octopusdeploy_machine_policies.default_machine_policy.machine_policies[0].id}"
+  worker_pool_ids = [ "${data.octopusdeploy_worker_pools.workerpool_default.worker_pools[0].id}" ]
   thumbprint   = "96203ED84246201C26A2F4360D7CBC36AC1D232C"
   uri          = "https://worker-example.com:1234/"
 }

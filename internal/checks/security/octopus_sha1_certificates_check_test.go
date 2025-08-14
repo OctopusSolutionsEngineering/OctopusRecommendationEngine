@@ -35,7 +35,7 @@ func TestSha1Certificates(t *testing.T) {
 		}
 
 		// Create the check
-		check := NewOctoLintSha1CertificatesCheck(
+		check := NewOctopusSha1CertificatesCheck(
 			newSpaceClient,
 			&config.OctolintConfig{
 				Url:                         container.URI,

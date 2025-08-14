@@ -46,7 +46,7 @@ func (o OctopusCheckFactory) BuildAllChecks(config *config.OctolintConfig) ([]ch
 		security.NewOctopusInsecureK8sCheck(o.client, config, o.errorHandler),
 		security.NewOctopusInsecureFeedsCheck(o.client, config, o.errorHandler),
 		security.NewOctopusInsecureSubscriptionsCheck(o.client, config, o.errorHandler),
-		security.NewOctoLintSha1CertificatesCheck(o.client, config, o.errorHandler),
+		security.NewOctopusSha1CertificatesCheck(o.client, config, o.errorHandler),
 		organization.NewOctopusEnvironmentCountCheck(o.client, config, o.errorHandler),
 		organization.NewOctopusDefaultProjectGroupCountCheck(o.client, config, o.errorHandler),
 		organization.NewOctopusEmptyProjectCheck(o.client, config, o.errorHandler),
