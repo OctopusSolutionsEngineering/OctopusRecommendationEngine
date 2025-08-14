@@ -24,5 +24,6 @@ const MaxTenantTagsTenants = 100
 const MaxProjectSpecificEnvironmentEnvironments = 100
 const MaxInvalidNameTargets = 100
 const MaxInsecureK8sTargets = 100
+const MaxSha1CertificatesMachines = 100
 const MaxDeploymentTasks = 100
 const MaxDefaultStepNameProjects = 100
