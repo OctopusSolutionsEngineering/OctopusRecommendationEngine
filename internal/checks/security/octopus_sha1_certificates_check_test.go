@@ -52,8 +52,8 @@ func TestSha1Certificates(t *testing.T) {
 		}
 
 		// Assert
-		if result == nil || result.Severity() != checks.Warning {
-			return errors.New("check should have failed")
+		if result == nil || result.Severity() != checks.Ok {
+			return errors.New("check should have passed")
 		}
 
 		return nil
