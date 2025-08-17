@@ -5,6 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/naming"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/organization"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/performance"
@@ -13,8 +16,6 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/defaults"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/types"
 	"github.com/spf13/viper"
-	"os"
-	"strings"
 )
 
 func ParseArgs(args []string) (*config.OctolintConfig, error) {
@@ -64,6 +65,7 @@ func ParseArgs(args []string) (*config.OctolintConfig, error) {
 	flags.IntVar(&octolintConfig.MaxInvalidNameTargets, "maxInvalidNameTargets", defaults.MaxInvalidNameTargets, "Maximum number of targets to check for invalid names for the "+naming.OctoLintInvalidTargetNames+" check. Set to 0 to check all targets.")
 	flags.IntVar(&octolintConfig.MaxInsecureK8sTargets, "maxInsecureK8sTargets", defaults.MaxInsecureK8sTargets, "Maximum number of targets to check for insecure k8s configuration for the "+security.OctoLintInsecureK8sTargets+" check. Set to 0 to check all targets.")
 	flags.IntVar(&octolintConfig.MaxDeploymentTasks, "maxDeploymentTasks", defaults.MaxDeploymentTasks, "Maximum number of deployment tasks to scan for the "+performance.OctoLintDeploymentQueuedTime+" check. Set to 0 to check all targets.")
+	flags.IntVar(&octolintConfig.MaxSha1CertificatesMachines, "maxSha1CertificatesMachines", defaults.MaxSha1CertificatesMachines, "Maximum number of machines to check for SHA1 certificates for the "+security.OctoLintSha1Certificates+" check. Set to 0 to check all targets and workers.")
 	flags.StringVar(&octolintConfig.ContainerImageRegex, "containerImageRegex", "", "The regular expression used to validate container images for the "+naming.OctoLintContainerImageName+" check")
 	flags.StringVar(&octolintConfig.VariableNameRegex, "variableNameRegex", "", "The regular expression used to validate variable names for the "+naming.OctoLintInvalidVariableNames+" check")
 	flags.StringVar(&octolintConfig.TargetNameRegex, "targetNameRegex", "", "The regular expression used to validate target names for the "+naming.OctoLintInvalidTargetNames+" check")

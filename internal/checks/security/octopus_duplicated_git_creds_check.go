@@ -3,13 +3,14 @@ package security
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/newclient"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/resources"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"go.uber.org/zap"
-	"strings"
 )
 
 // CustomProject is the simplest representation of a project and its version controlled settings
@@ -103,7 +104,7 @@ func (o OctopusDuplicatedGitCredentialsCheck) Execute(concurrency int) (checks.O
 	}
 
 	return checks.NewOctopusCheckResultImpl(
-		"No Git usernames have been resued",
+		"No Git usernames have been reused",
 		o.Id(),
 		"",
 		checks.Ok,

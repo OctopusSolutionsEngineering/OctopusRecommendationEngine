@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"strings"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks/naming"
@@ -10,7 +12,6 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"github.com/samber/lo"
 	"golang.org/x/exp/slices"
-	"strings"
 )
 
 // OctopusCheckFactory builds all the lint checks. This is where you can customize things like error handlers.
@@ -45,6 +46,7 @@ func (o OctopusCheckFactory) BuildAllChecks(config *config.OctolintConfig) ([]ch
 		security.NewOctopusInsecureK8sCheck(o.client, config, o.errorHandler),
 		security.NewOctopusInsecureFeedsCheck(o.client, config, o.errorHandler),
 		security.NewOctopusInsecureSubscriptionsCheck(o.client, config, o.errorHandler),
+		security.NewOctopusSha1CertificatesCheck(o.client, config, o.errorHandler),
 		organization.NewOctopusEnvironmentCountCheck(o.client, config, o.errorHandler),
 		organization.NewOctopusDefaultProjectGroupCountCheck(o.client, config, o.errorHandler),
 		organization.NewOctopusEmptyProjectCheck(o.client, config, o.errorHandler),
