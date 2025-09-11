@@ -2,20 +2,21 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/args"
-	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
-	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/entry"
-	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/environment"
-	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/reporters"
-	"go.uber.org/zap"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
+
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/args"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/entry"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/environment"
+	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/reporters"
+	"github.com/samber/lo"
+	"go.uber.org/zap"
 )
 
 type AzureFunctionRequestDataReq struct {
@@ -39,9 +40,8 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 	redirectorApiKey := r.Header.Get("X_REDIRECTION_API_KEY")
 	redirectorServiceApiKey, _ := os.LookupEnv("REDIRECTION_SERVICE_API_KEY")
 	redirectorHost, _ := os.LookupEnv("REDIRECTION_HOST")
-	disableRedirector, _ := os.LookupEnv("DISABLE_REDIRECTION")
 
-	enableRedirector, err := useRedirector(url, disableRedirector, redirectorServiceApiKey, redirectorHost, redirectorRedirections, redirectorApiKey)
+	enableRedirector, err := useRedirector(url, redirectorServiceApiKey, redirectorHost, redirectorRedirections, redirectorApiKey)
 
 	if err != nil {
 		handleError(err, w)
@@ -143,20 +143,31 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func useRedirector(octopusUrl string, disableRedirector string, redirectorServiceApiKey string, redirectorHost string, redirections string, redirectorApiKey string) (bool, error) {
+func useRedirector(octopusUrl string, redirectorServiceApiKey string, redirectorHost string, redirections string, redirectorApiKey string) (bool, error) {
 	parsedUrl, err := url.Parse(octopusUrl)
 
 	if err != nil {
 		return false, err
 	}
 
-	disableRedirectorParsed, err := strconv.ParseBool(disableRedirector)
+	bypassList := environment.GetRedirectionBypass()
 
-	if err != nil {
-		disableRedirectorParsed = false
+	// Allow bypassing specific domains via environment variable
+	if lo.Contains(bypassList, parsedUrl.Hostname()) {
+		return false, nil
 	}
 
-	return !disableRedirectorParsed && redirectorServiceApiKey != "" && redirectorHost != "" &&
+	// Allow forcing all traffic through the redirection service
+	if environment.GetRedirectionForce() {
+		return true, nil
+	}
+
+	// All redirections can be disabled via environment variable
+	if environment.GetRedirectionDisable() {
+		return false, nil
+	}
+
+	return redirectorServiceApiKey != "" && redirectorHost != "" &&
 		(!hostIsCloudOrLocal(parsedUrl.Hostname()) ||
 			(redirections != "" && redirectorApiKey != "")), nil
 }
