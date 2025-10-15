@@ -5,7 +5,7 @@ resource "octopusdeploy_lifecycle" "example" {
   release_retention_policy {
     quantity_to_keep    = 30
     should_keep_forever = false
-    unit                = "Days"
+    unit                = "Items"
   }
 
   tentacle_retention_policy {
@@ -21,7 +21,7 @@ resource "octopusdeploy_lifecycle" "example" {
     release_retention_policy {
       quantity_to_keep    = 30
       should_keep_forever = false
-      unit                = "Days"
+      unit                = "Items"
     }
 
     tentacle_retention_policy {
@@ -38,7 +38,7 @@ resource "octopusdeploy_lifecycle" "example" {
     release_retention_policy {
       quantity_to_keep    = 30
       should_keep_forever = false
-      unit                = "Days"
+      unit                = "Items"
     }
 
     tentacle_retention_policy {
@@ -55,7 +55,7 @@ resource "octopusdeploy_lifecycle" "example" {
     release_retention_policy {
       quantity_to_keep    = 30
       should_keep_forever = false
-      unit                = "Days"
+      unit                = "Items"
     }
 
     tentacle_retention_policy {
