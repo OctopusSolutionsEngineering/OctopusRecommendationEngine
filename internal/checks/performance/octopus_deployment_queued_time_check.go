@@ -3,15 +3,16 @@ package performance
 import (
 	"errors"
 	"fmt"
+	"math"
+	"strings"
+	"time"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/events"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"github.com/samber/lo"
 	"go.uber.org/zap"
-	"math"
-	"strings"
-	"time"
 )
 
 const maxQueueTimeMinutes = 1
@@ -78,6 +79,9 @@ func (o OctopusDeploymentQueuedTimeCheck) Execute(concurrency int) (checks.Octop
 
 			if r.Category == "DeploymentQueued" {
 				queuedDeploymentId := o.getDeploymentFromRelatedDocs(r)
+
+				foundStartTime := false
+
 				for _, r2 := range resource.Items {
 					if r2.Category == "DeploymentStarted" && queuedDeploymentId == o.getDeploymentFromRelatedDocs(r2) {
 						queueTime := r2.Occurred.Sub(r.Occurred)
@@ -88,6 +92,22 @@ func (o OctopusDeploymentQueuedTimeCheck) Execute(concurrency int) (checks.Octop
 								queuedAt:     r.Occurred,
 							})
 						}
+
+						// No need to check other started events for this queued event
+						foundStartTime = true
+						break
+					}
+				}
+
+				if !foundStartTime {
+					// Deployment has not started yet, check against current time
+					queueTime := time.Since(r.Occurred)
+					if queueTime.Minutes() > maxQueueTimeMinutes {
+						deployments = append(deployments, deploymentInfo{
+							deploymentId: queuedDeploymentId,
+							duration:     queueTime.Minutes(),
+							queuedAt:     r.Occurred,
+						})
 					}
 				}
 			}
