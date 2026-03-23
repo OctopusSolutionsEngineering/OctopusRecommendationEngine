@@ -143,6 +143,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
+      - name: Login to Octopus Deploy
+        uses: OctopusDeploy/login@v1
+        with:
+          server: https://mattc.octopus.app
+          service_account_id: ad1576ef-b053-4c85-b983-c0607045ae1f
       - name: Get branch name
         id: branch-name
         uses: tj-actions/branch-names@v7
@@ -308,7 +313,6 @@ jobs:
         if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
         uses: OctopusDeploy/push-package-action@v3
         env:
-          OCTOPUS_API_KEY: ${{ secrets.COPILOT_OCTOPUS_API }}
           OCTOPUS_URL: ${{ secrets.COPILOT_OCTOPUS_URL }}
           OCTOPUS_SPACE: ${{ secrets.COPILOT_OCTOPUS_SPACE }}
         with:
@@ -318,7 +322,6 @@ jobs:
         if: ${{ steps.branch-name.outputs.current_branch == 'main' }}
         uses: OctopusDeploy/create-release-action@v3
         env:
-          OCTOPUS_API_KEY: ${{ secrets.COPILOT_OCTOPUS_API }}
           OCTOPUS_URL: ${{ secrets.COPILOT_OCTOPUS_URL }}
           OCTOPUS_SPACE: ${{ secrets.COPILOT_OCTOPUS_SPACE }}
         with:
