@@ -4,6 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/resources"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/spaces"
@@ -15,11 +21,6 @@ import (
 	"github.com/briandowns/spinner"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"net/http"
-	"net/url"
-	"os"
-	"strings"
-	"time"
 )
 
 var Version = "development"
@@ -98,13 +99,13 @@ func Entry(octolintConfig *config.OctolintConfig) ([]checks.OctopusCheckResult, 
 
 	checkExecutor := executor.NewOctopusCheckExecutor()
 	results, err := checkExecutor.ExecuteChecks(checkCollection, func(check checks.OctopusCheck, err error) error {
-		fmt.Fprintf(os.Stderr, "Failed to execute check "+check.Id())
+		fmt.Fprint(os.Stderr, "Failed to execute check "+check.Id())
 		if octolintConfig.VerboseErrors {
 			fmt.Println("##octopus[stdout-verbose]")
 			fmt.Println(err.Error())
 			fmt.Println("##octopus[stdout-default]")
 		} else {
-			fmt.Fprintf(os.Stderr, err.Error()+"\n")
+			fmt.Fprint(os.Stderr, err.Error()+"\n")
 		}
 		return nil
 	})
