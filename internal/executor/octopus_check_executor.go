@@ -45,7 +45,7 @@ func (o OctopusCheckExecutor) ExecuteChecks(checkCollection []checks.OctopusChec
 						checkResults = append(
 							checkResults,
 							checks.NewOctopusCheckResultImpl(
-								"The check failed to run: "+err.Error(),
+								"The check "+c.Id()+" failed to run: "+err.Error(),
 								c.Id(),
 								"",
 								checks.Error,
