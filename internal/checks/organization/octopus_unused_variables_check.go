@@ -13,6 +13,7 @@ import (
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/newclient"
 	projects2 "github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/projects"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/resources"
+	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/runbookprocess"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/runbooks"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/variables"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
@@ -198,7 +199,7 @@ func (o *OctopusUnusedVariablesCheck) getDeploymentSteps(p *projects2.Project) (
 		}
 
 		for _, runbook := range runbooks.Items {
-			runbookProcess, err := o.client.RunbookProcesses.GetByID(runbook.RunbookProcessID)
+			runbookProcess, err := runbookprocess.GetByID(o.client, o.client.GetSpaceID(), runbook.RunbookProcessID)
 
 			if err != nil {
 				zap.L().Error("Failed to get runbook process for runbook "+runbook.Name+" in project "+p.Name+" in check "+o.Id(), zap.Error(err))
