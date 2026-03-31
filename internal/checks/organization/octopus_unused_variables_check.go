@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+	"sync"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/deployments"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/newclient"
@@ -17,9 +21,6 @@ import (
 	"github.com/hayageek/threadsafe"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
-	"regexp"
-	"strings"
-	"sync"
 )
 
 const OctoLintUnusedVariables = "OctoLintUnusedVariables"
@@ -61,6 +62,7 @@ func (o *OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusCh
 		o.config.MaxUnusedVariablesProjects)
 
 	if err != nil {
+		zap.L().Error("Failed to get projects", zap.Error(err))
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
 	}
 
@@ -80,6 +82,7 @@ func (o *OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusCh
 			variableSet, err := o.client.Variables.GetAll(p.ID)
 
 			if err != nil {
+				zap.L().Error("Failed to get variables for project "+p.Name+" in check "+o.Id(), zap.Error(err))
 				if !o.errorHandler.ShouldContinue(err) {
 					goroutineErrors.Append(err)
 				}
@@ -89,6 +92,7 @@ func (o *OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusCh
 			deploymentSteps, err := o.getDeploymentSteps(p)
 
 			if err != nil {
+				zap.L().Error("Failed to get deployment steps for project "+p.Name+" in check "+o.Id(), zap.Error(err))
 				if !o.errorHandler.ShouldContinue(err) {
 					goroutineErrors.Append(err)
 				}
@@ -119,11 +123,13 @@ func (o *OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusCh
 	}
 
 	if err := g.Wait(); err != nil {
+		zap.L().Error("Failed to scan projects for unused variables in check "+o.Id(), zap.Error(err))
 		return nil, err
 	}
 
 	// Treat the first error as the root cause
 	if goroutineErrors.Length() > 0 {
+		zap.L().Error("Failed to scan projects for unused variables in check "+o.Id(), zap.Error(goroutineErrors.Values()[0]))
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, goroutineErrors.Values()[0])
 	}
 
@@ -155,9 +161,22 @@ func (o *OctopusUnusedVariablesCheck) Execute(concurrency int) (checks.OctopusCh
 
 func (o *OctopusUnusedVariablesCheck) getDeploymentSteps(p *projects2.Project) ([]*deployments.DeploymentStep, error) {
 	deploymentProcesses := []*deployments.DeploymentStep{}
-	deploymentProcess, err := o.client.DeploymentProcesses.GetByID(p.DeploymentProcessID)
+	var deploymentProcess *deployments.DeploymentProcess
+	var err error
+
+	if p.IsVersionControlled {
+		gitPersistenceSettings, ok := p.PersistenceSettings.(projects2.GitPersistenceSettings)
+		if !ok {
+			zap.L().Error("Failed to cast PersistenceSettings to GitPersistenceSettings for project "+p.Name, zap.Any("PersistenceSettings", p.PersistenceSettings))
+			return nil, errors.New("failed to cast PersistenceSettings to GitPersistenceSettings for project " + p.Name)
+		}
+		deploymentProcess, err = deployments.GetDeploymentProcessByGitRef(o.client, o.client.GetSpaceID(), p, gitPersistenceSettings.DefaultBranch())
+	} else {
+		deploymentProcess, err = deployments.GetDeploymentProcessByID(o.client, o.client.GetSpaceID(), p.DeploymentProcessID)
+	}
 
 	if err != nil {
+		zap.L().Error("Failed to get deployment process for project "+p.Name+" in check "+o.Id(), zap.Error(err))
 		if !o.errorHandler.ShouldContinue(err) {
 			return nil, err
 		}
@@ -171,6 +190,7 @@ func (o *OctopusUnusedVariablesCheck) getDeploymentSteps(p *projects2.Project) (
 		runbooks, err := newclient.Get[resources.Resources[runbooks.Runbook]](o.client.HttpSession(), linkOptions.ReplaceAllString(link, ""))
 
 		if err != nil {
+			zap.L().Error("Failed to get runbooks for project "+p.Name+" in check "+o.Id(), zap.Error(err))
 			if !o.errorHandler.ShouldContinue(err) {
 				return nil, err
 			}
@@ -180,6 +200,7 @@ func (o *OctopusUnusedVariablesCheck) getDeploymentSteps(p *projects2.Project) (
 			runbookProcess, err := o.client.RunbookProcesses.GetByID(runbook.RunbookProcessID)
 
 			if err != nil {
+				zap.L().Error("Failed to get runbook process for runbook "+runbook.Name+" in project "+p.Name+" in check "+o.Id(), zap.Error(err))
 				if !o.errorHandler.ShouldContinue(err) {
 					return nil, err
 				}
