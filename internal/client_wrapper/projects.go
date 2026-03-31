@@ -6,6 +6,7 @@ import (
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/config"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/excluder"
 	"github.com/samber/lo"
+	"go.uber.org/zap"
 )
 
 func GetProjects(limit int, client newclient.Client, spaceID string) ([]*projects.Project, error) {
@@ -52,6 +53,7 @@ func GetProjectsWithFilter(client newclient.Client, spaceID string, excludeProje
 	}
 
 	if allProjects, err := GetProjects(maxItems, client, spaceID); err != nil {
+		zap.L().Error("Failed to get projects", zap.Error(err))
 		return nil, err
 	} else {
 		defaultExcluder := excluder.DefaultExcluder{}
@@ -66,6 +68,7 @@ func GetNamedProjects(client newclient.Client, spaceID string, excludeProjectsEx
 
 	for _, projectName := range excludeProjectsExcept {
 		if project, err := GetProjectByName(projectName, client, spaceID); err != nil {
+			zap.L().Error("Failed to get project with name "+projectName, zap.Error(err))
 			return nil, err
 		} else {
 			projects = append(projects, project...)
