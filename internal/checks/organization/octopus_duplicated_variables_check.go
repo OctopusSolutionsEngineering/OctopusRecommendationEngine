@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/client"
 	projects2 "github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/projects"
 	"github.com/OctopusDeploy/go-octopusdeploy/v2/pkg/variables"
@@ -14,9 +18,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 const OctoLintDuplicatedVariables = "OctoLintDuplicatedVariables"
@@ -64,6 +65,7 @@ func (o *OctopusDuplicatedVariablesCheck) Execute(concurrency int) (checks.Octop
 		o.config.MaxDuplicateVariableProjects)
 
 	if err != nil {
+		zap.L().Error("Failed to get projects for check "+o.Id(), zap.Error(err))
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, err)
 	}
 
@@ -87,6 +89,7 @@ func (o *OctopusDuplicatedVariablesCheck) Execute(concurrency int) (checks.Octop
 			variableSet, err := o.client.Variables.GetAll(p.ID)
 
 			if err != nil {
+				zap.L().Error("Failed to get variables for project "+p.Name+" in check "+o.Id(), zap.Error(err))
 				if !o.errorHandler.ShouldContinue(err) {
 					goroutineErrors.Append(err)
 				}
@@ -104,6 +107,7 @@ func (o *OctopusDuplicatedVariablesCheck) Execute(concurrency int) (checks.Octop
 	}
 
 	if err := g.Wait(); err != nil {
+		zap.L().Error("Failed to get variables for projects in check "+o.Id(), zap.Error(err))
 		return nil, err
 	}
 
