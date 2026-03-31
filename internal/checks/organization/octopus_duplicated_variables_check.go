@@ -113,6 +113,7 @@ func (o *OctopusDuplicatedVariablesCheck) Execute(concurrency int) (checks.Octop
 
 	// Treat the first error as the root cause
 	if goroutineErrors.Length() > 0 {
+		zap.L().Error("One or more errors occurred while getting variables for projects in check "+o.Id(), zap.Error(goroutineErrors.Values()[0]))
 		return o.errorHandler.HandleError(o.Id(), checks.Organization, goroutineErrors.Values()[0])
 	}
 
