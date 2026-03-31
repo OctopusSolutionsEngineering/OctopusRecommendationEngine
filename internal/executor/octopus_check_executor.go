@@ -41,7 +41,7 @@ func (o OctopusCheckExecutor) ExecuteChecks(checkCollection []checks.OctopusChec
 					result, err := c.Execute(mathext.InternalLevelConcurrency(ParallelTasks, CheckParallelTasks, len(checkCollection)))
 
 					if err != nil {
-						zap.L().Error("Check "+c.Id()+" failed to execute", zap.Error(err))
+						zap.L().Error("Check "+c.Id()+" failed to execute", zap.Error(err), zap.Stack("stacktrace"))
 						checkResults = append(
 							checkResults,
 							checks.NewOctopusCheckResultImpl(
