@@ -62,12 +62,19 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := os.CreateTemp("", "*.json")
+	tempDir, err := os.MkdirTemp("", "octolint-*")
 
 	if err != nil {
 		handleError(err, w)
 		return
 	}
+
+	// Clean up the temp directory (and config file) when we are done.
+	defer func(path string) {
+		if err := os.RemoveAll(path); err != nil {
+			zap.L().Error(err.Error())
+		}
+	}(tempDir)
 
 	configJson, err := sanitizeConfig(respBytes)
 
@@ -78,26 +85,19 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Print(string(configJson))
 
-	err = os.WriteFile(file.Name(), configJson, 0644)
+	configFilePath := filepath.Join(tempDir, "config.json")
+	err = os.WriteFile(configFilePath, configJson, 0644)
 
 	if err != nil {
 		handleError(err, w)
 		return
 	}
 
-	// Clean up the file when we are done
-	defer func(name string) {
-		err := os.Remove(name)
-		if err != nil {
-			zap.L().Error(err.Error())
-		}
-	}(file.Name())
-
-	filename := filepath.Base(file.Name())
+	filename := filepath.Base(configFilePath)
 	extension := filepath.Ext(filename)
 	filenameWithoutExtension := filename[0 : len(filename)-len(extension)]
 
-	commandLineArgs := []string{"-spinner=False", "-configFile", filenameWithoutExtension, "-configPath", filepath.Dir(file.Name())}
+	commandLineArgs := []string{"-spinner=False", "-configFile", filenameWithoutExtension, "-configPath", filepath.Dir(configFilePath)}
 
 	if apiKey != "" {
 		commandLineArgs = append(commandLineArgs, "-apiKey", apiKey)
