@@ -76,7 +76,7 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Print(configJson)
+	fmt.Print(string(configJson))
 
 	err = os.WriteFile(file.Name(), configJson, 0644)
 
