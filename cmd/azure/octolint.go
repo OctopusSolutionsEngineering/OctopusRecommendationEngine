@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -74,6 +75,8 @@ func octoterraHandler(w http.ResponseWriter, r *http.Request) {
 		handleError(err, w)
 		return
 	}
+
+	fmt.Print(configJson)
 
 	err = os.WriteFile(file.Name(), configJson, 0644)
 
