@@ -2,9 +2,11 @@ package executor
 
 import (
 	"context"
+
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/checks"
 	"github.com/OctopusSolutionsEngineering/OctopusRecommendationEngine/internal/mathext"
 	"github.com/avast/retry-go/v4"
+	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -39,6 +41,7 @@ func (o OctopusCheckExecutor) ExecuteChecks(checkCollection []checks.OctopusChec
 					result, err := c.Execute(mathext.InternalLevelConcurrency(ParallelTasks, CheckParallelTasks, len(checkCollection)))
 
 					if err != nil {
+						zap.L().Error("Check "+c.Id()+" failed to execute", zap.Error(err))
 						checkResults = append(
 							checkResults,
 							checks.NewOctopusCheckResultImpl(
