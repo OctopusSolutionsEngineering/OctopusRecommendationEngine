@@ -186,7 +186,8 @@ func (o *OctopusUnusedVariablesCheck) getDeploymentSteps(p *projects2.Project) (
 		}
 	}
 
-	if link, ok := p.Links["Runbooks"]; ok {
+	// Don't attempt to load CaC runbooks - this will need to be fixed later
+	if link, ok := p.Links["Runbooks"]; ok && !p.IsVersionControlled {
 		runbooks, err := newclient.Get[resources.Resources[runbooks.Runbook]](o.client.HttpSession(), linkOptions.ReplaceAllString(link, ""))
 
 		if err != nil {
